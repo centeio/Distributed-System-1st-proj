@@ -8,8 +8,14 @@ import java.rmi.server.UnicastRemoteObject;
 public class Peer implements PeerObj {
 	private String id;
 	private Registry registry;
+		
+	public String getId() {	return id;}
+	public void setId(String id) {this.id = id;}
+	public Registry getRegistry() {return registry;}
 	
-	
+	public void setRegistry(Registry registry) {
+		this.registry = registry;
+	}
 	
 	public Peer(String id) throws RemoteException {
 		super();
@@ -20,12 +26,10 @@ public class Peer implements PeerObj {
 	    this.registry = LocateRegistry.getRegistry();
 	    this.registry.rebind(this.id, stub);
 	}
-
-
-
+	
 	public static void main(String[] args) throws IOException{
 		
-		if(args.length != 2){
+		if(args.length != 3){
 			System.out.println("Usage: Peer <mcast_addr> <mcast_port> <name>");
 			return;
 		}		
@@ -48,8 +52,8 @@ public class Peer implements PeerObj {
 		byte[] rbuf = new byte[(int) Math.pow(2,16)];
 		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 		
-		Thread peerp = new Thread(new PeerInitiator());
-		peerp.start();
+	/*	Thread peerp = new Thread(new PeerInitiator());
+		peerp.start();*/
 		
 		while(true){
 			
@@ -65,4 +69,24 @@ public class Peer implements PeerObj {
 
 			
 	}
+	
+	@Override
+	public String initOp(String operation, String file) throws RemoteException { //Restore and delete
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public String initOp(String operation, int space) throws RemoteException { //Reclaim
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public String initOp(String operation, String file, int repdegree) throws RemoteException { //Backup
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+
+
 }

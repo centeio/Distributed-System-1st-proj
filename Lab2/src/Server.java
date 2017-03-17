@@ -13,8 +13,8 @@ public class Server {
 		unicast.start();
 		System.out.println("finishes unicast");		
 		
-		Thread multicast = new Thread(new MulticastServer(args[0], args[1], args[2]));
-		multicast.start();
+	/*	Thread multicast = new Thread(new MulticastServer(args[0], args[1], args[2]));
+		multicast.start();*/
 		System.out.println("finishes multicast");
 		
 
