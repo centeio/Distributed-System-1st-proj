@@ -1,6 +1,11 @@
+import java.rmi.RemoteException;
 import java.util.Scanner;
 
-public class PeerProcess implements Runnable{
+public class PeerInitiator implements Runnable {
+
+	public PeerInitiator() throws RemoteException {
+		// TODO Auto-generated constructor stub
+	}
 
 	@Override
 	public void run() {

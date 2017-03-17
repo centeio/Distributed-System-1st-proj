@@ -1,14 +1,37 @@
 import java.io.IOException;
 import java.net.*;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
-public class Client {
+public class Peer implements PeerObj {
+	private String id;
+	private Registry registry;
+	
+	
+	
+	public Peer(String id) throws RemoteException {
+		super();
+		this.id = id;
+	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
+
+	    // Bind the remote object's stub in the registry
+	    this.registry = LocateRegistry.getRegistry();
+	    this.registry.rebind(this.id, stub);
+	}
+
+
+
 	public static void main(String[] args) throws IOException{
 		
 		if(args.length != 2){
-			System.out.println("Usage: Client <mcast_addr> <mcast_port>");
+			System.out.println("Usage: Peer <mcast_addr> <mcast_port> <name>");
 			return;
 		}		
 		
+	    Peer obj = new Peer(args[2]);	    
+	    
 		MulticastSocket mcsocket;
 
 		try{	
@@ -25,7 +48,7 @@ public class Client {
 		byte[] rbuf = new byte[(int) Math.pow(2,16)];
 		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 		
-		Thread peerp = new Thread(new PeerProcess());
+		Thread peerp = new Thread(new PeerInitiator());
 		peerp.start();
 		
 		while(true){
