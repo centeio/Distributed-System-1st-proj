@@ -3,6 +3,9 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+//PUTCHUNK <Version> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
+
+
 public class MDB implements Runnable {
 	private int mcast_port;
 	private String mcast_addr;

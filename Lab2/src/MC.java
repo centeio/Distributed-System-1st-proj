@@ -3,6 +3,11 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+//STORED <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
+//GETCHUNK <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
+//DELETE <Version> <SenderId> <FileId> <CRLF><CRLF>
+//REMOVED <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
+
 
 public class MC implements Runnable {
 	private int mcast_port;

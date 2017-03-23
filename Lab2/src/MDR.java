@@ -3,6 +3,9 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+//CHUNK <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF><Body>
+
+
 public class MDR implements Runnable {
 	private int mcast_port;
 	private String mcast_addr;
