@@ -35,39 +35,15 @@ public class Peer implements PeerObj {
 		}		
 		
 	    Peer obj = new Peer(args[2]);	    
-	    
-		MulticastSocket mcsocket;
+		
+		Thread mc = new Thread(new MC(args[0], args[1]));
+		Thread mdb = new Thread(new MDB(args[0], args[1]));
+		Thread mdr = new Thread(new MDR(args[0], args[1]));
 
-		try{	
-			mcsocket = new MulticastSocket(Integer.parseInt(args[1]));
-			mcsocket.setTimeToLive(1);
-			mcsocket.setSoTimeout(10000);	
-			mcsocket.joinGroup(InetAddress.getByName(args[0]));
-		}
-		catch(SocketException e){
-			System.out.println("Try another address...");
-			return;
-		}
-		
-		byte[] rbuf = new byte[(int) Math.pow(2,16)];
-		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
-		
-	/*	Thread peerp = new Thread(new PeerInitiator());
-		peerp.start();*/
-		
-		while(true){
-			
-		try{
-			System.out.println("will receive packet");		
-			mcsocket.receive(packet);
-		}catch(SocketTimeoutException e){
-			mcsocket.close();
-			return;
-		}
-		System.out.println("will leave group");	
-		}
-
-			
+		mc.start();
+		mdb.start();
+		mdr.start();
+					
 	}
 	
 	@Override
