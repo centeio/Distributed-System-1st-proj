@@ -13,6 +13,11 @@ import java.util.List;
 public class Peer implements PeerObj {
 	private String id;
 	private Registry registry;
+	private String mcast_addr;
+	private int mcast_port;
+	private MC mc;
+	private MDB mdb;
+	private MDR mdr;
 		
 	public String getId() {	return id;}
 	public void setId(String id) {this.id = id;}
@@ -22,44 +27,52 @@ public class Peer implements PeerObj {
 		this.registry = registry;
 	}
 	
-	public Peer(String id) throws RemoteException {
+	public Peer(String[] args) throws RemoteException {
+		//<name> <mcast_addr> <mc> <mdb> <mdr>
 		super();
-		this.id = id;
+		id = Integer.toHexString(Integer.parseInt(args[0]));
+		mcast_addr = args[1];
+		
+	    mc = new MC(mcast_addr, args[2]);
+		mdb = new  MDB(mcast_addr, args[3]);
+		mdr = new MDR(mcast_addr, args[4]);
+		
 	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
 
 	    // Bind the remote object's stub in the registry
 	    this.registry = LocateRegistry.getRegistry();
 	    this.registry.rebind(this.id, stub);
+
 	}
 	
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws IOException, InterruptedException{
 	
-		if(args.length != 3){
-			System.out.println("Usage: Peer <mcast_addr> <mcast_port> <name>");
+		if(args.length != 5){
+			System.out.println("Usage: Peer <name> <mcast_addr> <mc> <mdb> <mdr>");
 			return;
 		}		
 		
-	    Peer obj = new Peer(args[2]);	    
+	    Peer obj = new Peer(args);
+	    obj.execute();
+	}
+	
+	public void execute() throws InterruptedException {
+	/*	mc.t.join();
+		mdb.t.join();
+		mdr.t.join();*/
 		
-		Thread mc = new Thread(new MC(args[0], args[1]));
-		Thread mdb = new Thread(new MDB(args[0], args[1]));
-		Thread mdr = new Thread(new MDR(args[0], args[1]));
-
-		mc.start();
-		mdb.start();
-		mdr.start();
+		
+	}
+	@Override
+	public void delete(String file) throws RemoteException { //Restore and delete
+		// TODO Auto-generated method stub
 	}
 	
 	@Override
-	public String initOp(String operation, String file) throws RemoteException { //Restore and delete
+	public void reclaim(int space) throws RemoteException { //Reclaim
 		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public String initOp(String operation, int space) throws RemoteException { //Reclaim
-		// TODO Auto-generated method stub
-		return null;
-	}
+	}	
+	
 	
 	
 	/**
@@ -72,19 +85,14 @@ public class Peer implements PeerObj {
 	 * 
 	 * @return
 	 */
-	@Override
-	public String initOp(String operation, String file, int repdegree) throws RemoteException {
-		
-		
-		return "backup";
-	}
 	
 	/**
 	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
 	 * 
 	 * @param filename
 	 */
-	public void backupFile(String filename){
+	@Override
+	public void backup(String filename, int repdegree) throws RemoteException {
 		File file = new File(filename);
 		if(!file.exists()) return;
 		
@@ -96,9 +104,17 @@ public class Peer implements PeerObj {
 		int chunkNo = 0;
 		int chunkMaxSize = 1024 * 64;
 		int readLength = chunkMaxSize;
+		int n = 1;
+		int m = 0;
+		MulticastSocket socket;
+
+		
+		// TODO FileId
 		
 		try{
 			stream = new FileInputStream(file);
+			socket = new MulticastSocket();
+
 			
 			while(filelength > 0){
 				if(filelength < chunkMaxSize){
@@ -129,14 +145,28 @@ public class Peer implements PeerObj {
 				 */
 				String chunkName = filename + ".part" + Integer.toString(chunkNo);
 
-				File output = new File(chunkName);
+				//PUTCHUNK <Version> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
+				//TODO ChunkName e parametros corretos
+				String message = "PUTCHUNK " + Integer.toHexString(n) +  Integer.toHexString(m) + " " 
+				+ this.id + " " + filename + " " + chunkNo + " " + repdegree + " <CRLF><CRLF>" + chunkData;
+				
+		/*		File output = new File(chunkName);
 				chunk = new FileOutputStream(output);
 				chunk.write(chunkData);
 				chunk.flush();
-				chunk.close();
+				chunk.close();*/
+								
+				InetAddress address = InetAddress.getByName(mcast_addr);
+				DatagramPacket packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, mdb.getPort());
+				socket.send(packet);
 				
+				//TODO ciclo com timeout para receber Stored em novo MulticastSocket com port MC
+				
+	//			output.delete();
 				chunkData = null;
-				chunk = null;
+	//			chunk = null;
+				
+
 			}
 			
 			stream.close();
@@ -151,7 +181,15 @@ public class Peer implements PeerObj {
 			System.out.println("Error closing stream of file " + filename);
 			e.printStackTrace();
 		}
+		
 	}
+	
+	@Override
+	public void restore(String file) throws RemoteException {
+	}
+	
+
+
 	
 	/**
 	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java

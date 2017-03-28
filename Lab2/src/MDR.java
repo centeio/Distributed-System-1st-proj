@@ -7,21 +7,60 @@ import java.net.MulticastSocket;
 
 
 public class MDR implements Runnable {
-	private int mcast_port;
+	private int port;
 	private String mcast_addr;
+	public Thread t;
+	private MulticastSocket mcsocket;
 
-	public MDR(String mcastport, String mcastaddr){
+
+	public MDR(String mcastaddr, String mcastport){
 		super();
-		this.mcast_port = Integer.parseInt(mcastport);
-		this.mcast_addr = mcastaddr;
+		port = Integer.parseInt(mcastport);
+		mcast_addr = mcastaddr;
+		t = new Thread(this);
+		t.start();
+
+		
 	}
 	
+	public int getPort() {
+		return port;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+
+	public String getMcast_addr() {
+		return mcast_addr;
+	}
+
+	public void setMcast_addr(String mcast_addr) {
+		this.mcast_addr = mcast_addr;
+	}
+
+	public Thread getT() {
+		return t;
+	}
+
+	public void setT(Thread t) {
+		this.t = t;
+	}
+	
+	public MulticastSocket getMcsocket() {
+		return mcsocket;
+	}
+
+	public void setMcsocket(MulticastSocket mcsocket) {
+		this.mcsocket = mcsocket;
+	}
+	
+
 	@Override
 	public void run() {
-		MulticastSocket mcsocket;
-
+		
 		try{	
-			mcsocket = new MulticastSocket(mcast_port);
+			mcsocket = new MulticastSocket(port);
 			mcsocket.setTimeToLive(1);
 			mcsocket.setSoTimeout(10000);	
 			mcsocket.joinGroup(InetAddress.getByName(mcast_addr));
@@ -31,14 +70,16 @@ public class MDR implements Runnable {
 			return;
 		}
 		
-		byte[] rbuf = new byte[(int) Math.pow(2,16)];
-		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
-		
 		while(true){
 			
 		try{
+			byte[] rbuf = new byte[(int) Math.pow(2,16)];
+			DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 			System.out.println("will receive packet in MDR");		
 			mcsocket.receive(packet);
+			System.out.println("will receive packet in MDR");		
+
+			System.out.println(packet.getData());
 		}catch(IOException e){
 			mcsocket.close();
 			return;

@@ -3,8 +3,8 @@ import java.rmi.RemoteException;
 
 public interface PeerObj extends Remote{
 	
-	String initOp(String operation, String file) throws RemoteException; //Restore and delete
-	String initOp(String operation, int space) throws RemoteException; //Reclaim
-	String initOp(String operation, String file, int repdegree) throws RemoteException; //Backup
-
+	void restore(String file) throws RemoteException; 
+	void delete(String file) throws RemoteException;
+	void reclaim(int space) throws RemoteException; 
+	void backup(String file, int repdegree) throws RemoteException; 
 }

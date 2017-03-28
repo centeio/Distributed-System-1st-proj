@@ -1,4 +1,6 @@
-/MC.class
-/UnicastServer.class
 /MDB.class
 /MDR.class
+/Peer.class
+/PeerObj.class
+/Server.class
+/UnicastServer.class

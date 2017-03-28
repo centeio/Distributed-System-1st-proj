@@ -29,24 +29,24 @@ public class Client {
 			
 		    Registry registry = LocateRegistry.getRegistry(null);
 		    PeerObj stub = (PeerObj) registry.lookup(peerID);
-		    String response;
+
 			switch(operation){
 			case "backup":
 				int rep = Integer.parseInt(args[3]);
-				response = stub.initOp(operation, file, rep);
+				stub.backup(file, rep);
 				
 				break;
 			case "reclaim":
 				int space = Integer.parseInt(args[2]);
-				response = stub.initOp(operation, space);
+				stub.reclaim(space);
 				
 				break;
 			case "delete":
-				response = stub.initOp(operation, file);
+				stub.delete(file);
 				
 				break;
 			case "restore":
-				response = stub.initOp(operation, file);
+				stub.restore(file);
 				
 				break;
 			default:
@@ -54,7 +54,7 @@ public class Client {
 				
 				return;
 			}
-		    System.out.println("response: " + response);
+		    System.out.println("response: ");
 		} catch (Exception exc) {
 		    System.err.println("Client exception: ID not found " + peerID);
 		    return;
