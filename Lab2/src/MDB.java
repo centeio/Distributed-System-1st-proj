@@ -55,13 +55,7 @@ public class MDB implements Runnable {
 
 	public void setMcsocket(MulticastSocket mcsocket) {
 		this.mcsocket = mcsocket;
-	}
-
-/*				File output = new File(chunkName);
-				chunk = new FileOutputStream(output);
-				chunk.write(chunkData);
-				chunk.flush();
-				chunk.close();*/	
+	}	
 	
 	@Override
 	public void run() {
@@ -85,11 +79,20 @@ public class MDB implements Runnable {
 			System.out.println("will receive packet in MDB");		
 			mcsocket.receive(packet);
 			
-			/*		File output = new File(chunkName);
+			String message = new String(packet.getData(), "UTF_8");
+			
+			String[] parts = message.split("\\r\\n\\r\\n"); //<CRLF><CRLF>
+			String[] header = parts[0].split("[ ]+");
+			byte[] body = parts[1].getBytes();
+			
+			System.out.print(parts[0]);
+
+			/*File output = new File(chunkName);
 			chunk = new FileOutputStream(output);
 			chunk.write(chunkData);
 			chunk.flush();
 			chunk.close();*/
+			
 		}catch(IOException e){
 			mcsocket.close();
 			return;
