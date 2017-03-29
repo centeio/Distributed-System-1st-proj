@@ -78,6 +78,13 @@ public class MC implements Runnable {
 			DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 			System.out.println("will receive packet in MC " + mcsocket);		
 			mcsocket.receive(packet);
+			
+	/*		File output = new File(chunkName);
+			chunk = new FileOutputStream(output);
+			chunk.write(chunkData);
+			chunk.flush();
+			chunk.close();*/
+			
 			System.out.println("will receive packet in MC");		
 
 		}catch(IOException e){

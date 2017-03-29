@@ -65,7 +65,6 @@ public class MDB implements Runnable {
 	
 	@Override
 	public void run() {
-
 		try{	
 			mcsocket = new MulticastSocket(port);
 			mcsocket.setTimeToLive(1);
@@ -89,7 +88,7 @@ public class MDB implements Runnable {
 			mcsocket.close();
 			return;
 		}
-		System.out.println("will leave group");	
+		System.out.println("ciclo");	
 		}
 
 	}	

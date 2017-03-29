@@ -11,16 +11,17 @@ import java.util.Comparator;
 import java.util.List;
 
 public class Peer implements PeerObj {
-	private String id;
+	private int id;
 	private Registry registry;
 	private String mcast_addr;
 	private int mcast_port;
 	private MC mc;
 	private MDB mdb;
 	private MDR mdr;
+	private String name;
 		
-	public String getId() {	return id;}
-	public void setId(String id) {this.id = id;}
+	public int getId() {	return id;}
+	public void setId(int id) {this.id = id;}
 	public Registry getRegistry() {return registry;}
 	
 	public void setRegistry(Registry registry) {
@@ -30,25 +31,25 @@ public class Peer implements PeerObj {
 	public Peer(String[] args) throws RemoteException {
 		//<name> <mcast_addr> <mc> <mdb> <mdr>
 		super();
-		id = Integer.toHexString(Integer.parseInt(args[0]));
-		mcast_addr = args[1];
+		id = Integer.parseInt(args[1]);
+		name = args[2];
 		
-	    mc = new MC(mcast_addr, args[2]);
-		mdb = new  MDB(mcast_addr, args[3]);
-		mdr = new MDR(mcast_addr, args[4]);
+	    mc = new MC(args[3], args[4]);
+		mdb = new  MDB(args[5], args[6]);
+		mdr = new MDR(args[7], args[8]);
 		
 	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
 
 	    // Bind the remote object's stub in the registry
 	    this.registry = LocateRegistry.getRegistry();
-	    this.registry.rebind(this.id, stub);
+	    this.registry.rebind(this.name, stub);
 
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
 	
-		if(args.length != 5){
-			System.out.println("Usage: Peer <name> <mcast_addr> <mc> <mdb> <mdr>");
+		if(args.length != 9){
+			System.out.println("Usage: Peer <version> <id> <name> <mc_addr> <mc> <mdb_addr> <mdb> <mdr_addr> <mdr>");
 			return;
 		}		
 		
@@ -71,20 +72,17 @@ public class Peer implements PeerObj {
 	 * 
 	 * Backup
 	 * 
-	 * @param operation
-	 * @param file
+	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
+	 * 
+	 * @param filename
 	 * @param repdegree
 	 * 
 	 * @return
 	 */
-	
-	/**
-	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
-	 * 
-	 * @param filename
-	 */
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException {
+		System.out.println("entra backup "+filename);
+
 		File file = new File(filename);
 		if(!file.exists()) return;
 		
@@ -109,6 +107,7 @@ public class Peer implements PeerObj {
 
 			
 			while(filelength > 0){
+				System.out.println("entra ciclo backup");
 				if(filelength < chunkMaxSize){
 					readLength = (int)filelength;
 				}
@@ -148,8 +147,10 @@ public class Peer implements PeerObj {
 				chunk.flush();
 				chunk.close();*/
 								
-				InetAddress address = InetAddress.getByName(mcast_addr);
+				InetAddress address = InetAddress.getByName(mdb.getMcast_addr());
 				DatagramPacket packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, mdb.getPort());
+				System.out.println("sends to " + mdb.getMcast_addr() + " port " + mdb.getPort());
+
 				socket.send(packet);
 				
 				//TODO ciclo com timeout para receber Stored em novo MulticastSocket com port MC
