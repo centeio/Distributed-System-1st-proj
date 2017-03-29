@@ -84,6 +84,12 @@ public class MDB implements Runnable {
 		try{
 			System.out.println("will receive packet in MDB");		
 			mcsocket.receive(packet);
+			
+			/*		File output = new File(chunkName);
+			chunk = new FileOutputStream(output);
+			chunk.write(chunkData);
+			chunk.flush();
+			chunk.close();*/
 		}catch(IOException e){
 			mcsocket.close();
 			return;
