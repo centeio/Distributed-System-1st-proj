@@ -35,9 +35,9 @@ public class Peer implements PeerObj {
 		id = Integer.parseInt(args[1]);
 		name = args[2];
 		
-	    mc = new MC(args[3], args[4]);
-		mdb = new  MDB(args[5], args[6]);
-		mdr = new MDR(args[7], args[8]);
+	    mc = new MC(args[3], args[4],this);
+		mdb = new  MDB(args[5], args[6],this);
+		mdr = new MDR(args[7], args[8],this);
 		
 	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
 
@@ -181,6 +181,7 @@ public class Peer implements PeerObj {
 	@Override
 	public void restore(String file) throws IOException {
 		String chunkNo = "ch1";
+		//TODO get chunkNo
 		String message = "GETCHUNK " + version + " " + id + " " + file + " " + chunkNo +" <CRLF><CRLF>";
 		MulticastSocket socket = new MulticastSocket();
 
@@ -189,7 +190,18 @@ public class Peer implements PeerObj {
 		System.out.println("sends GETCHUNK to " + mc.getMcast_addr() + " port " + mc.getPort());
 
 		socket.send(packet);
+		
+		address = InetAddress.getByName(mdr.getMcast_addr());
+		byte[] rbuf = new byte[(int) Math.pow(2,16)];
+		packet = new DatagramPacket(rbuf, rbuf.toString().length(), address, mdr.getPort());
+		socket.receive(packet);
+		
+		System.out.println("gets CHUNK from " + packet.getAddress() + " port " + packet.getPort());
+		
 		socket.close();
+		
+		
+		
 	}
 	
 	/**

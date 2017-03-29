@@ -14,11 +14,12 @@ public class MC implements Runnable {
 	private String mcast_addr;
 	public Thread t;
 	private MulticastSocket mcsocket;
+	public Peer parent;
 
 
-
-	public MC(String mcastaddr, String mcastport){
+	public MC(String mcastaddr, String mcastport, Peer parent){
 		super();
+		this.parent = parent;
 		port = Integer.parseInt(mcastport);
 		mcast_addr = mcastaddr;
 		t = new Thread(this);
