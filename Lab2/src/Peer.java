@@ -19,6 +19,7 @@ public class Peer implements PeerObj {
 	private MDB mdb;
 	private MDR mdr;
 	private String name;
+	private String version;
 		
 	public int getId() {	return id;}
 	public void setId(int id) {this.id = id;}
@@ -178,18 +179,25 @@ public class Peer implements PeerObj {
 	}
 	
 	@Override
-	public void restore(String file) throws RemoteException {
+	public void restore(String file) throws IOException {
+		String chunkNo = "ch1";
+		String message = "GETCHUNK " + version + " " + id + " " + file + " " + chunkNo +" <CRLF><CRLF>";
+		MulticastSocket socket = new MulticastSocket();
+
+		InetAddress address = InetAddress.getByName(mc.getMcast_addr());
+		DatagramPacket packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, mc.getPort());
+		System.out.println("sends GETCHUNK to " + mc.getMcast_addr() + " port " + mc.getPort());
+
+		socket.send(packet);
+		socket.close();
 	}
-	
-
-
 	
 	/**
 	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
 	 * 
 	 * @param filename
 	 */
-	public void restoreFile(String filename){
+	public void restoreFile(String filename, List<File> files){
 		File file = new File(filename);
 		
 		FileOutputStream chunk;
@@ -197,7 +205,7 @@ public class Peer implements PeerObj {
 		
 		byte[] fileData;
 		
-		List<File> files = findFiles(filename);
+//		List<File> files = findFiles(filename);
 		/*Collections.sort(files, new Comparator<File>(){
 			@Override
 			public int compare(File f1, File f2) {

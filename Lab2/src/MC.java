@@ -76,18 +76,18 @@ public class MC implements Runnable {
 		try{
 			byte[] rbuf = new byte[(int) Math.pow(2,16)];
 			DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
-			System.out.println("will receive packet in MC " + mcsocket);		
+			System.out.println("will receive packet in MC ");		
 			mcsocket.receive(packet);
 			
 
 			
-			System.out.println("will receive packet in MC");		
+			System.out.println("will receive packet in MC " + packet.getData());		
 
 		}catch(IOException e){
 			mcsocket.close();
 			return;
 		}
-		System.out.println("will leave group");	
+		System.out.println("ciclo mc");	
 		}
 
 	}	
