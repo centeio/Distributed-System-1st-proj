@@ -53,16 +53,8 @@ public class Peer implements PeerObj {
 		}		
 		
 	    Peer obj = new Peer(args);
-	    obj.execute();
 	}
 	
-	public void execute() throws InterruptedException {
-	/*	mc.t.join();
-		mdb.t.join();
-		mdr.t.join();*/
-		
-		
-	}
 	@Override
 	public void delete(String file) throws RemoteException { //Restore and delete
 		// TODO Auto-generated method stub
