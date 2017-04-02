@@ -87,32 +87,56 @@ public class MDB implements Runnable {
 			
 			String message = new String(packet.getData(), "UTF_8");
 			
-			String[] parts = message.split("\\r\\n\\r\\n"); //<CRLF><CRLF>
+			//PUTCHUNK <Version> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
+			String[] parts = message.split("[ ]+\\r\\n\\r\\n"); //<CRLF><CRLF>
 			String[] header = parts[0].split("[ ]+");
-			byte[] body = parts[1].getBytes();
+			byte[] chunkData = parts[1].getBytes();
 			
-			//TODO check if parent is the sender
+			//Parse header
+			String messageType = header[0];
+			String version = header[1];
+			int senderId = Integer.parseInt(header[2]);
+			String fileId = header[3];
+			int chunkNo = Integer.parseInt(header[4]);
+			int replicationDeg = Integer.parseInt(header[5]);
 			
-			System.out.print(parts[0]);
-
-			/*File output = new File(chunkName);
-			chunk = new FileOutputStream(output);
-			chunk.write(chunkData);
-			chunk.flush();
-			chunk.close();*/
+			//Testing if parser working
+			System.out.println("MessageType: " + messageType + "*");
+			System.out.println("Version: " + version + "*");
+			System.out.println("SenderId: " + senderId + "*");
+			System.out.println("FileId: " + fileId + "*");
+			System.out.println("chunkNo: " + chunkNo + "*");
+			System.out.println("ReplicationDeg: " + replicationDeg + "*");
 			
-			
-			message = "STORED";
-			
-			long randomTime = (0 + (int)(Math.random() * 4))*1000;
-			Thread.sleep(randomTime);
-			
-			InetAddress address = InetAddress.getByName(parent.mc.getMcast_addr());
-			packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, parent.mc.getPort());
-			System.out.println("sends STORED to " + parent.mc.getMcast_addr() + " port " + parent.mc.getPort());
-
-			mc.send(packet);
-			mc.close();
+			//check if parent is the sender
+			if(senderId != parent.getId()){
+				/*
+				 * Saves information of the chunk onto a new file name:
+				 * filename.partX, being x a number.
+				 * Eg: text.part1 - text.part2 - text.part3
+				 * 
+				 * TODO: check chunkName
+				 */
+				/*String chunkName = header[3] + ".part" + header[4];
+	
+				File output = new File(chunkName);
+				FileOutputStream chunk = new FileOutputStream(output);
+				chunk.write(chunkData);
+				chunk.flush();
+				chunk.close();*/			
+				
+				message = "STORED";
+				
+				long randomTime = (0 + (int)(Math.random() * 4))*1000;
+				Thread.sleep(randomTime);
+				
+				InetAddress address = InetAddress.getByName(parent.mc.getMcast_addr());
+				packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, parent.mc.getPort());
+				System.out.println("sends STORED to " + parent.mc.getMcast_addr() + " port " + parent.mc.getPort());
+	
+				mc.send(packet);
+				mc.close();
+			}
 			
 		}catch(IOException e){
 			mcsocket.close();
