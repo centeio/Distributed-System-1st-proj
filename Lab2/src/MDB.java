@@ -75,6 +75,10 @@ public class MDB implements Runnable {
 		byte[] rbuf = new byte[(int) Math.pow(2,16)];
 		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 		
+		MulticastSocket mc;
+		try {
+			mc = new MulticastSocket();
+
 		while(true){
 			
 		try{
@@ -87,6 +91,8 @@ public class MDB implements Runnable {
 			String[] header = parts[0].split("[ ]+");
 			byte[] body = parts[1].getBytes();
 			
+			//TODO check if parent is the sender
+			
 			System.out.print(parts[0]);
 
 			/*File output = new File(chunkName);
@@ -95,12 +101,31 @@ public class MDB implements Runnable {
 			chunk.flush();
 			chunk.close();*/
 			
+			
+			message = "STORED";
+			
+			long randomTime = (0 + (int)(Math.random() * 4))*1000;
+			Thread.sleep(randomTime);
+			
+			InetAddress address = InetAddress.getByName(parent.mc.getMcast_addr());
+			packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, parent.mc.getPort());
+			System.out.println("sends STORED to " + parent.mc.getMcast_addr() + " port " + parent.mc.getPort());
+
+			mc.send(packet);
+			mc.close();
+			
 		}catch(IOException e){
 			mcsocket.close();
 			return;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 		System.out.println("ciclo");	
 		}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
 
 	}	
 	

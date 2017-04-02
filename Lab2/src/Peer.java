@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Hashtable;
 import java.util.List;
 
 public class Peer implements PeerObj {
@@ -15,11 +16,13 @@ public class Peer implements PeerObj {
 	private Registry registry;
 	private String mcast_addr;
 	private int mcast_port;
-	private MC mc;
-	private MDB mdb;
-	private MDR mdr;
+	public MC mc;
+	public MDB mdb;
+	public MDR mdr;
 	private String name;
 	private String version;
+	public Hashtable protocols;
+	//Threadpool para processar por ordem
 		
 	public int getId() {	return id;}
 	public void setId(int id) {this.id = id;}

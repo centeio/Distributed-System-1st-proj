@@ -80,7 +80,7 @@ public class MC implements Runnable {
 			System.out.println("will receive packet in MC ");		
 			mcsocket.receive(packet);
 			
-
+			//TODO alterar estado no ficheiro em causa	
 			
 			System.out.println("will receive packet in MC " + packet.getData());		
 
