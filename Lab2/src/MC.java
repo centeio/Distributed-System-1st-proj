@@ -7,8 +7,6 @@ import java.net.MulticastSocket;
 //GETCHUNK <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
 //DELETE <Version> <SenderId> <FileId> <CRLF><CRLF>
 //REMOVED <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
-
-
 public class MC implements Runnable {
 	private int port;
 	private String mcast_addr;
@@ -16,15 +14,13 @@ public class MC implements Runnable {
 	private MulticastSocket mcsocket;
 	public Peer parent;
 
-
 	public MC(String mcastaddr, String mcastport, Peer parent){
 		super();
 		this.parent = parent;
 		port = Integer.parseInt(mcastport);
 		mcast_addr = mcastaddr;
 		t = new Thread(this);
-		t.start();
-				
+		t.start();	
 	}
 	
 	public int getPort() {
@@ -63,8 +59,7 @@ public class MC implements Runnable {
 	public void run() {
 		try{	
 			mcsocket = new MulticastSocket(port);
-			mcsocket.setTimeToLive(1);
-			mcsocket.setSoTimeout(10000);	
+			mcsocket.setTimeToLive(1);	
 			mcsocket.joinGroup(InetAddress.getByName(mcast_addr));
 		}
 		catch(IOException e){
@@ -72,23 +67,32 @@ public class MC implements Runnable {
 			return;
 		}
 		
+		byte[] rbuf = new byte[(int) Math.pow(2,16)];
+		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
+		
 		while(true){
-			
-		try{
-			byte[] rbuf = new byte[(int) Math.pow(2,16)];
-			DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
-			System.out.println("will receive packet in MC ");		
-			mcsocket.receive(packet);
-			
-			//TODO alterar estado no ficheiro em causa	
-			
-			System.out.println("will receive packet in MC " + packet.getData());		
+			try{
+				System.out.println("will receive packet in MC ");		
+				mcsocket.receive(packet);
+				
+				String message = new String(packet.getData(), "UTF-8");
+				message = message.trim();
+				String[] parts = message.split(" "); //<CRLF><CRLF>
 
-		}catch(IOException e){
-			mcsocket.close();
-			return;
-		}
-		System.out.println("ciclo mc");	
+				//Parse stored message
+				String storedT = parts[0];
+				String storedV = parts[1];
+				int storedSI = Integer.parseInt(parts[2]);
+				String storedFI = parts[3];
+				int storedCN = Integer.parseInt(parts[4]);
+
+				System.out.println("Received STORED message from: \n\t\taddress:" + mcast_addr + "\n\t\tport: " + port);
+				
+				//TODO alterar estado no ficheiro em causa	
+			}catch(IOException e){
+				mcsocket.close();
+				return;
+			}
 		}
 
 	}	

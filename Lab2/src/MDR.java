@@ -73,34 +73,33 @@ public class MDR implements Runnable {
 		}
 		
 		while(true){
-			
-		try{
-			byte[] rbuf = new byte[(int) Math.pow(2,16)];
-			DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
-			System.out.println("will receive packet in MDR");		
-			mcsocket.receive(packet);
-			System.out.println("received packet in MDR");
-			
-			//TODO prepare answer CHUNK
-			
-			String answer = "chunk from " + parent.getId();
-			InetAddress address = InetAddress.getByName(mcast_addr);
-			packet = new DatagramPacket(answer.getBytes(), answer.toString().length(), address, port);
-			System.out.println("sends CHUNK to " + mcast_addr + " port " + port);
-
-			long randomTime = (0 + (int)(Math.random() * 4))*1000;
-			Thread.sleep(randomTime); 
-			mcsocket.send(packet);
-
-			System.out.println(packet.getData());
-		}catch(IOException e){
-			mcsocket.close();
-			return;
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("will leave group");	
+			try{
+				byte[] rbuf = new byte[(int) Math.pow(2,16)];
+				DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
+				System.out.println("will receive packet in MDR");		
+				mcsocket.receive(packet);
+				System.out.println("received packet in MDR");
+				
+				//TODO prepare answer CHUNK
+				
+				String answer = "chunk from " + parent.getId();
+				InetAddress address = InetAddress.getByName(mcast_addr);
+				packet = new DatagramPacket(answer.getBytes(), answer.toString().length(), address, port);
+				System.out.println("sends CHUNK to " + mcast_addr + " port " + port);
+	
+				long randomTime = (0 + (int)(Math.random() * 4))*1000;
+				Thread.sleep(randomTime); 
+				mcsocket.send(packet);
+	
+				System.out.println(packet.getData());
+			}catch(IOException e){
+				mcsocket.close();
+				return;
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.println("will leave group");	
 		}
 
 	}	
