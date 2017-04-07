@@ -158,7 +158,7 @@ public class Operator implements Runnable{
 						del.updateState();
 					}
 					else if(del.state == Delete.State.DeletingChunks){
-						final File folder = peer.directory;
+						final File folder = peer.getDirectory();
 						final String filename = del.getFileId();
 						final File[] files = folder.listFiles( new FilenameFilter(){
 

@@ -194,6 +194,8 @@ public class Peer implements PeerObj {
 		
 		return files;
 	}
-	
 
+	public File getDirectory() {
+		return directory;
+	}
 }
