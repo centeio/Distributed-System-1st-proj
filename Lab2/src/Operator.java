@@ -157,7 +157,7 @@ public class Operator implements Runnable{
 						
 						del.updateState();
 					}
-					else if(del.state == Delete.State.DELETECHUNKS){
+					else if(del.state == Delete.State.DELETECHUNKS ){
 						final File folder = peer.getDirectory();
 						final String filename = del.getFileId();
 						final File[] files = folder.listFiles( new FilenameFilter(){
