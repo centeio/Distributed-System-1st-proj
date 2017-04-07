@@ -91,13 +91,13 @@ public class MC implements Runnable {
 					chunkNo = Integer.parseInt(parts[4]);
 				}
 				
-				System.out.println(fileId);
-				System.out.println("Received " + type + " message from: \n\t\taddress:" + mcast_addr + "\n\t\tport: " + port);
+				//System.out.println(fileId);
+				//System.out.println("Received " + type + " message from: \n\t\taddress:" + mcast_addr + "\n\t\tport: " + port);
 				
 				if(senderId != this.parent.getId()){
 					switch(type){
 					case "STORED":
-						//TODO alterar estado no ficheiro em causa
+						System.out.println("STORED from " + senderId);
 						break;
 					case "GETCHUNK":
 						break;

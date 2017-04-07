@@ -8,6 +8,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -19,37 +20,19 @@ public class Operator implements Runnable{
 		super();
 		this.peer = peer;
 	}
-
-	/**
-	 * Splits files into chunks with 64KB each
-	 * 
-	 * @param filename Name of the file  to split
-	 * @param mdb Channel where the chunk is going to be sent to 
-	 * @throws InterruptedException 
-	 */
-	public void splitFile(String filename, int peerID, int rd, MDB mdb, MC mc){
-		System.out.println("Backing up file " + filename);
-
-		File file = new File(filename);
-		filename = file.getName();
-		if(!file.exists()){
-			System.out.println("File does not exist.");
-			return;
-		}
-		
-		FileInputStream stream;
-		
-		byte[] chunkData;
-		long filelength = file.length();
-		int chunkNo = 0;
-		int chunkMaxSize = 1024 * 64;
-		int readLength = chunkMaxSize;
-		MulticastSocket socket;
-
+	
+	static public ArrayList<byte[]> divideFileIntoChunks(File file){
 		try{
-			stream = new FileInputStream(file);
-			socket = new MulticastSocket();
+			ArrayList<byte[]> chunks = new ArrayList<byte[]>();
+			
+			FileInputStream stream = new FileInputStream(file);
+			MulticastSocket socket = new MulticastSocket();
 
+			byte[] chunkData;
+			long filelength = file.length();
+			int chunkMaxSize = 1024 * 64;
+			int readLength = chunkMaxSize;
+			
 			while(filelength > 0){
 				if(filelength < chunkMaxSize){
 					readLength = (int)filelength;
@@ -64,50 +47,25 @@ public class Operator implements Runnable{
 					System.out.println("Error reading chunk");
 					break;
 				}
-				
-				chunkNo++;
-
-				String messageType = "PUTCHUNK";
-				String version = "1.0";
-				int senderId = peerID;
-				String fileId = sha256(filename + Integer.toString(chunkNo));
-				int repDegree = rd;
-
-				String header = messageType + " " + version + " " + senderId + " " + fileId + " " + chunkNo + " " + repDegree + " " + " \r\n\r\n";
-				byte[] headerBytes = header.getBytes();
-				
-				byte[] message = new byte[headerBytes.length + chunkData.length];
-				
-				for(int i = 0; i < message.length; i++){
-					if(i < headerBytes.length){
-						message[i] = headerBytes[i];
-					}else{
-						message[i] = chunkData[i-headerBytes.length];
-					}
-				}
-					
-				InetAddress address = InetAddress.getByName(mdb.getMcast_addr());
-				DatagramPacket packet = new DatagramPacket(message, message.length, address, mdb.getPort());
-				socket.send(packet);
-				
-				System.out.println("Sending PUTCHUNK message to: \n\t\taddress:" + mdb.getMcast_addr() + "\n\t\tport: " + mdb.getPort());	
-				
-				//TODO ciclo com timeout para receber Stored em novo MulticastSocket com port MC
+				chunks.add(chunkData);
 				
 				chunkData = null;
 			}
 			
 			stream.close();
 			stream = null;
+			socket.close();
+			
+			return chunks;
 		}catch(FileNotFoundException e){
-			System.out.println("File " + filename + " not found");
-			return;
+			System.out.println("File " + file.getName() + " not found");
+			return null;
 		}catch(SecurityException e){
-			System.out.println("Denied reading file " + filename);
-			return;
+			System.out.println("Denied reading file " + file.getName());
+			return null;
 		} catch (IOException e) {
-			System.out.println("Error closing stream of file " + filename);
-			e.printStackTrace();
+			System.out.println("Error closing stream of file " + file.getName());
+			return null;
 		}
 	}
 	
@@ -175,10 +133,80 @@ public class Operator implements Runnable{
 						}
 						del.updateState();
 					}
+				}else if(protocol instanceof Backup){
+					Backup bkup = (Backup) protocol;
+					
+					if(bkup.state == Backup.State.SENDCHUNK){
+						String message_header = bkup.getPutchunk();
+						byte[] message_header_bytes = message_header.getBytes();
+						byte[] message_body = bkup.getCurr_chunk();
+						byte[] full_message = new byte[message_header_bytes.length + message_body.length];
+						
+						for(int i = 0; i < full_message.length; i++){
+							if(i < message_header_bytes.length){
+								full_message[i] = message_header_bytes[i];
+							}else{
+								full_message[i] = message_body[i-message_header_bytes.length];
+							}
+						}
+						
+						MulticastSocket socket = new MulticastSocket();
+						InetAddress address = InetAddress.getByName(this.peer.mdb.getMcast_addr());
+						DatagramPacket packet = new DatagramPacket(full_message, full_message.length, address, this.peer.mdb.getPort());
+						socket.send(packet);
+						
+						System.out.println("Sending PUTCHUNK message");
+						
+						bkup.setState(Backup.State.SAVECHUNK);
+						
+						socket.close();
+					}else if(bkup.state == Backup.State.SAVECHUNK){
+						byte[] chunkData = bkup.getCurr_chunk();
+						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + (bkup.getCurrChunkNo()+1));
+						FileOutputStream chunk = new FileOutputStream(output);
+						chunk.write(chunkData);
+						chunk.flush();
+						chunk.close();
+
+						String message = bkup.getStored();
+						MulticastSocket socket = new MulticastSocket();
+						InetAddress address = InetAddress.getByName(this.peer.mc.getMcast_addr());
+						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, this.peer.mc.getPort());
+						socket.send(packet);
+						
+						System.out.println("Sending STORED message");
+						
+						bkup.setState(Backup.State.WAITSTORED);
+						
+						socket.close();
+					}else if(bkup.state == Backup.State.WAITSTORED){
+						byte[] rbuf = new byte[(int) Math.pow(2,16)];
+						MulticastSocket socket = new MulticastSocket(this.peer.mc.getPort());
+						DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
+						socket.receive(packet);
+						
+						System.out.println("Received STORED message");
+						
+						bkup.setState(Backup.State.RECEIVESTORED);
+						
+						socket.close();
+					}else if(bkup.state == Backup.State.RECEIVESTORED){
+												
+						if(bkup.hasChunksLeft()){
+							int currChunk = bkup.getCurrChunkNo();
+							bkup.setCurr_chunk(currChunk++);
+							
+							bkup.setState(Backup.State.SENDCHUNK);
+						}else{
+							bkup.setState(Backup.State.DONE);
+						}
+					}else if(bkup.state == Backup.State.DONE){
+						this.peer.queue.remove(protocol);
+					}					
 				}
 				
 				//if not done
-				peer.queue.put(protocol);
+				//this.peer.queue.put(protocol);
 				//else
 				//peer.protocols.put(id, protocol);
 				

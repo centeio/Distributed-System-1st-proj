@@ -106,12 +106,6 @@ public class Peer implements PeerObj {
 		System.out.println(filename + " will be deleted.");
 	}
 	
-	@Override
-	public void reclaim(int space) throws RemoteException { //Reclaim
-		// TODO Auto-generated method stub
-	}	
-	
-	
 	/**
 	 * 
 	 * Backup
@@ -124,9 +118,17 @@ public class Peer implements PeerObj {
 	 */
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException{
-		//TODO new Backup() -> setState -> blockingQueue 
-		Operator operator = new Operator(this);
-		operator.splitFile(filename, this.id, repdegree, this.mdb, this.mc);
+		File file = new File(filename);
+		filename = file.getName();
+		if(!file.exists()){
+			System.out.println("File does not exist.");
+			return;
+		}
+		
+		ArrayList<byte[]> chunks = Operator.divideFileIntoChunks(file);
+		String fileId = Operator.sha256(filename + file.lastModified() + this.id);
+		this.queue.add(new Backup(fileId, this.id, repdegree, chunks));
+		System.out.println("Backing up " + filename);
 	}	
 	
 	@Override
@@ -149,11 +151,13 @@ public class Peer implements PeerObj {
 		
 		System.out.println("gets CHUNK from " + packet.getAddress() + " port " + packet.getPort());
 		
-		socket.close();
-		
-		
-		
+		socket.close();		
 	}
+		
+	@Override
+	public void reclaim(int space) throws RemoteException { //Reclaim
+		// TODO Auto-generated method stub
+	}	
 	
 	/**
 	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
