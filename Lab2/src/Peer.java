@@ -10,6 +10,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Peer implements PeerObj {
 	private int id;
@@ -24,6 +26,7 @@ public class Peer implements PeerObj {
 	private File directory;
 	private String folderName;
 	public Hashtable protocols;
+	public BlockingQueue queue;
 	//Threadpool para processar por ordem
 	public double space = 60; //em KB
 		
@@ -44,6 +47,8 @@ public class Peer implements PeerObj {
 		this.mc = new MC(args[3], args[4],this);
 		this.mdb = new  MDB(args[5], args[6],this);
 		this.mdr = new MDR(args[7], args[8],this);
+		
+		this.queue = new LinkedBlockingQueue<Object>();
 		
 	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
 

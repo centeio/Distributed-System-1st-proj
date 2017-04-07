@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -10,7 +11,14 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-public class Operator {
+public class Operator implements Runnable{
+	
+	private Peer peer;
+
+	public Operator(Peer peer) {
+		super();
+		this.peer = peer;
+	}
 
 	/**
 	 * Splits files into chunks with 64KB each
@@ -125,6 +133,59 @@ public class Operator {
 	    } catch(Exception ex){
 	       throw new RuntimeException(ex);
 	    }
+	}
+
+	@Override
+	public void run() {
+		//TODO access peer's blocking queue
+		while(true){
+			try {
+				Object protocol = peer.queue.take();
+				
+				//work 
+				if(protocol instanceof Delete){
+					Delete del = (Delete) protocol;
+					
+					if(del.state == Delete.State.DeletingFile){
+						String message = del.getMessage();
+						MulticastSocket socket = new MulticastSocket();
+						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
+						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
+						socket.send(packet);
+						
+						System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
+						
+						del.updateState();
+					}
+					else if(del.state == Delete.State.DeletingChunks){
+						final File folder = peer.directory;
+						final String filename = del.getFileId();
+						final File[] files = folder.listFiles( new FilenameFilter(){
+
+							@Override
+							public boolean accept(File dir, String name) {
+								return name.matches( filename + ".*" );
+							}
+							
+						});
+						for ( final File file : files ) {
+						    if ( !file.delete() ) {
+						        System.err.println( "Can't remove " + file.getAbsolutePath() );
+						    }
+						}
+					}
+				}
+				
+				//if not done
+				peer.queue.put(protocol);
+				//else
+				peer.protocols.put(id, protocol);
+				
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 	
 }
