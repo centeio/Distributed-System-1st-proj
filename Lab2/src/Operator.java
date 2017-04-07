@@ -173,15 +173,19 @@ public class Operator implements Runnable{
 						        System.err.println( "Can't remove " + file.getAbsolutePath() );
 						    }
 						}
+						del.updateState();
 					}
 				}
 				
 				//if not done
 				peer.queue.put(protocol);
 				//else
-				peer.protocols.put(id, protocol);
+				//peer.protocols.put(id, protocol);
 				
 			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}

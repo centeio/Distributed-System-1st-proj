@@ -27,7 +27,7 @@ public class Delete {
 	}
 	
 	public String getMessage(){
-		String message = "DELETE 1.0 " + this.senderId + " " + this.fileId + " \\r\\n\\r\\n";
+		String message = "DELETE 1.0 " + this.senderId + " " + this.fileId + " \r\n\r\n";
 		
 		return message;
 	}

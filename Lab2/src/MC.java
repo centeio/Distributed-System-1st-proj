@@ -3,10 +3,10 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
-//STORED <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
-//GETCHUNK <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
-//DELETE <Version> <SenderId> <FileId> <CRLF><CRLF>
-//REMOVED <Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
+//STORED	<Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
+//GETCHUNK	<Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
+//DELETE	<Version> <SenderId> <FileId> <CRLF><CRLF>
+//REMOVED	<Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
 public class MC implements Runnable {
 	private int port;
 	private String mcast_addr;
@@ -77,18 +77,37 @@ public class MC implements Runnable {
 				
 				String message = new String(packet.getData(), "UTF-8");
 				message = message.trim();
+
 				String[] parts = message.split(" "); //<CRLF><CRLF>
-
-				//Parse stored message
-				String storedT = parts[0];
-				String storedV = parts[1];
-				int storedSI = Integer.parseInt(parts[2]);
-				String storedFI = parts[3];
-				int storedCN = Integer.parseInt(parts[4]);
-
-				System.out.println("Received STORED message from: \n\t\taddress:" + mcast_addr + "\n\t\tport: " + port);
 				
-				//TODO alterar estado no ficheiro em causa	
+				//Parse message
+				String type = parts[0];
+				String version = parts[1];
+				int senderId = Integer.parseInt(parts[2]);
+				String fileId = parts[3];
+				int chunkNo;
+				
+				if(!type.equals("DELETE")){
+					chunkNo = Integer.parseInt(parts[4]);
+				}
+				
+				System.out.println(fileId);
+				System.out.println("Received " + type + " message from: \n\t\taddress:" + mcast_addr + "\n\t\tport: " + port);
+				
+				if(senderId != this.parent.getId()){
+					switch(type){
+					case "STORED":
+						//TODO alterar estado no ficheiro em causa
+						break;
+					case "GETCHUNK":
+						break;
+					case "DELETE":
+						this.parent.queue.add(new Delete(fileId));
+						break;
+					case "REMOVED":
+						break;
+					}
+				}
 			}catch(IOException e){
 				mcsocket.close();
 				return;
