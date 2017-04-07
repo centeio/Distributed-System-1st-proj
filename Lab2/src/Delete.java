@@ -1,6 +1,6 @@
 public class Delete {
 	public enum State {
-	     DeletingFile, DeletingChunks, Done
+	     DELETEFILE, DELETECHUNKS, DONE
 	}
 	public State state;
 	
@@ -15,7 +15,7 @@ public class Delete {
 		
 		//TODO: check how many tries are "necessary to ensure that all space used by chunks of the deleted file are deleted in spite of the loss of some messages"
 		this.triesLeft = 3;
-		this.state = Delete.State.DeletingFile;
+		this.state = Delete.State.DELETEFILE;
 	}
 	
 	public Delete(String fileId) {
@@ -23,7 +23,7 @@ public class Delete {
 		this.fileId = fileId;
 		this.senderId = -1;
 		this.triesLeft = 1;
-		this.state = Delete.State.DeletingChunks;
+		this.state = Delete.State.DELETECHUNKS;
 	}
 	
 	public String getMessage(){
@@ -37,7 +37,7 @@ public class Delete {
 		triesLeft--;
 		
 		if(triesLeft == 0){
-			this.state = Delete.State.Done;
+			this.state = Delete.State.DONE;
 		}
 		
 		return this.state;

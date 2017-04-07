@@ -96,7 +96,7 @@ public class Peer implements PeerObj {
 	 */
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException{
-		Operator operator = new Operator();
+		Operator operator = new Operator(this);
 		operator.splitFile(filename, this.id, repdegree, this.mdb, this.mc);
 	}	
 	

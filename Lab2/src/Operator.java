@@ -146,7 +146,7 @@ public class Operator implements Runnable{
 				if(protocol instanceof Delete){
 					Delete del = (Delete) protocol;
 					
-					if(del.state == Delete.State.DeletingFile){
+					if(del.state == Delete.State.DELETEFILE){
 						String message = del.getMessage();
 						MulticastSocket socket = new MulticastSocket();
 						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
@@ -157,7 +157,7 @@ public class Operator implements Runnable{
 						
 						del.updateState();
 					}
-					else if(del.state == Delete.State.DeletingChunks){
+					else if(del.state == Delete.State.DELETECHUNKS){
 						final File folder = peer.getDirectory();
 						final String filename = del.getFileId();
 						final File[] files = folder.listFiles( new FilenameFilter(){

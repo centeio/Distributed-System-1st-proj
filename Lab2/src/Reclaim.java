@@ -1,6 +1,6 @@
 public class Reclaim {
 	public enum State {
-	     
+	     LOOKUPCHUNKS, SENDREMOVED, DONE
 	}
 	public State state;
 	public double version;
@@ -16,6 +16,7 @@ public class Reclaim {
 		this.fileId = fileId;
 		this.chunkNo = chunkNo;
 	}
+	
 	
 	
 	
