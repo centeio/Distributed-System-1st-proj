@@ -26,7 +26,7 @@ public class Peer implements PeerObj {
 	private File directory;
 	private String folderName;
 	public Hashtable protocols;
-	public BlockingQueue queue;
+	public BlockingQueue<Object> queue;
 	//Threadpool para processar por ordem
 	public double space = 60; //em KB
 		
@@ -74,8 +74,20 @@ public class Peer implements PeerObj {
 	}
 	
 	@Override
-	public void delete(String file) throws RemoteException { //Restore and delete
-		// TODO Auto-generated method stub
+	public void delete(String filename) throws RemoteException { //Restore and delete
+		File file = new File(filename);
+		if(!file.exists()){
+			System.out.println("File does not exist.");
+			return;
+		}
+
+		String fileId = Operator.sha256(filename + file.lastModified() + this.id);
+		this.queue.add(new Delete(fileId, this.id));
+		
+		if(!file.delete()){
+			System.out.println(filename + " can not be deleted.");
+			return;
+		}
 	}
 	
 	@Override

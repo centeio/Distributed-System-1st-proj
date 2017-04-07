@@ -117,7 +117,7 @@ public class Operator implements Runnable{
 	 * @param base String to encode
 	 * @return Encoded String
 	 */
-	public String sha256(String base) {
+	static public String sha256(String base) {
 	    try{
 	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
 	        byte[] hash = digest.digest(base.getBytes("UTF-8"));
