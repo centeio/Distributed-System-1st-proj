@@ -16,7 +16,7 @@ public class Operator {
 	 * Splits files into chunks with 64KB each
 	 * 
 	 * @param filename Name of the file  to split
-	 * @param mdb Channel where the chunk if going to be sent to 
+	 * @param mdb Channel where the chunk is going to be sent to 
 	 * @throws InterruptedException 
 	 */
 	public void splitFile(String filename, int peerID, int rd, MDB mdb, MC mc){

@@ -25,6 +25,7 @@ public class Peer implements PeerObj {
 	private String folderName;
 	public Hashtable protocols;
 	//Threadpool para processar por ordem
+	public double space = 60; //em KB
 		
 	public int getId() {	return id;}
 	public void setId(int id) {this.id = id;}
