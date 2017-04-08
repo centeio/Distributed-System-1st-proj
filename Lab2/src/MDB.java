@@ -68,14 +68,13 @@ public class MDB implements Runnable {
 				
 				mcsocket.receive(packet);
 								
-				String data = new String(packet.getData(), "UTF-8");
+				String data = new String(packet.getData());
+				data = data.trim();
 				
 				String[] data_split = data.split("[ ]+\\r\\n\\r\\n");
 				
 				String[] header = data_split[0].split(" ");
 				byte[] body = data_split[1].getBytes();
-
-				System.out.println(body.length);
 				
 				String messageType = header[0];
 				String version = header[1];

@@ -32,6 +32,7 @@ public class Peer implements PeerObj {
 	//Threadpool para processar por ordem
 	public double space = 60; //em KB
 	public int maxspace = 200;
+	private int receivedStored;
 	public int getId() {	return id;}
 	public void setId(int id) {this.id = id;}
 	public Registry getRegistry() {return registry;}
@@ -124,7 +125,7 @@ public class Peer implements PeerObj {
 			System.out.println("File does not exist.");
 			return;
 		}
-	
+		this.setReceivedStored(0);
 		this.queue.add(new BackupInitiator(filename, this.id, repdegree));
 		System.out.println("Backing up " + filename);
 	}	
@@ -237,5 +238,11 @@ public class Peer implements PeerObj {
 	}
 	public String getVersion() {
 		return version;
+	}
+	public int getReceivedStored() {
+		return receivedStored;
+	}
+	public void setReceivedStored(int receivedStored) {
+		this.receivedStored = receivedStored;
 	}
 }

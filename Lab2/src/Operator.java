@@ -220,11 +220,10 @@ public class Operator implements Runnable{
 						System.out.println("Waiting STORED");
 						
 						int timeout = 1000;
-						int numMessages = bkup.getReplication_degree();
 						int actualtries = 0;
 						
 						Thread.sleep(timeout);
-						while(this.peer.mc.receivedStored < numMessages && actualtries < 5){
+						while(this.peer.getReceivedStored() < bkup.getReplication_degree() && actualtries < 5){
 							System.out.println("Retransmiting PUTCHUNK...");
 							this.peer.mc.receivedStored = 0;
 							actualtries++;
@@ -256,7 +255,7 @@ public class Operator implements Runnable{
 							Thread.sleep(randomTime);
 							
 							socket.send(packet);
-							
+														
 							System.out.println("Sending STORED message");
 							
 							socket.close();
