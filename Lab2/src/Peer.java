@@ -25,11 +25,17 @@ public class Peer implements PeerObj {
 	public MDR mdr;
 	private String name;
 	private String version;
+	public String getVersion() {
+		return version;
+	}
+	public void setVersion(String version) {
+		this.version = version;
+	}
+
 	public File directory;
 	private String folderName;
 	public Hashtable<String, ArrayList<Backup>> protocols;
 	public BlockingQueue<Object> queue;
-	//Threadpool para processar por ordem
 	public double space = 60; //em KB
 	public int maxspace = 200;
 	public int getId() {	return id;}
@@ -120,12 +126,16 @@ public class Peer implements PeerObj {
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException{
 		File file = new File(filename);
+		filename = file.getName();
 		if(!file.exists()){
 			System.out.println("File does not exist.");
 			return;
 		}
-	
-		this.queue.add(new BackupInitiator(filename, this.id, repdegree));
+		
+		Operator.divideFileIntoChunks(file);
+		
+		String fileId = Operator.sha256(filename + file.lastModified() + this.id);
+		this.queue.add(new Backup(fileId, this.id, repdegree));
 		System.out.println("Backing up " + filename);
 	}	
 	
@@ -228,11 +238,5 @@ public class Peer implements PeerObj {
 
 	public File getDirectory() {
 		return directory;
-	}
-	public void addBackup(String fileId, Backup b) {
-		if(this.protocols.get(fileId) == null){
-			this.protocols.put(fileId, new ArrayList<Backup>());
-		}
-		this.protocols.get(fileId).add(b);
 	}
 }
