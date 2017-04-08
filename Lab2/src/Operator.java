@@ -18,12 +18,12 @@ public class Operator implements Runnable{
 	private static ArrayList<byte[]> chunks;
 	private int currChunk;
 	
-	
 	public Operator(Peer peer) {
 		super();
 		this.peer = peer;
 		this.currChunk = 0;
 	}
+
 	
 	public static void divideFileIntoChunks(File file){
 		try{
