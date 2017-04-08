@@ -9,6 +9,7 @@ public class Backup {
 	private String fileId;
 	private int senderId;
 	private byte[] chunk;
+	private int chunkNo;
 	private int replication_degree;
 	
 	public int getReplication_degree() {
@@ -29,12 +30,13 @@ public class Backup {
 		this.state = Backup.State.SENDCHUNK;
 	}
 
-	public Backup(String fileId, byte[] chunk, int senderId, State state) {
+	public Backup(String fileId, byte[] chunk, int chunkNo, int senderId, State state) {
 		super();
 		
 		this.setChunk(chunk);
 		this.setFileId(fileId);
 		this.setSenderId(senderId);
+		this.setChunkNo(chunkNo);
 		
 		this.state = state;
 	}
@@ -85,6 +87,14 @@ public class Backup {
 
 	public void setChunk(byte[] chunk) {
 		this.chunk = chunk;
+	}
+
+	public int getChunkNo() {
+		return chunkNo;
+	}
+
+	public void setChunkNo(int chunkNo) {
+		this.chunkNo = chunkNo;
 	}
 
 }

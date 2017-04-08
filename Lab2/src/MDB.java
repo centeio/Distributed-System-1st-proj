@@ -83,7 +83,7 @@ public class MDB implements Runnable {
 				
 				if(this.parent.getId() != senderId){
 					System.out.println("Received PUTCHUNK from " + senderId);
-					this.parent.queue.add(new Backup(fileId, body, this.parent.getId(), Backup.State.SAVECHUNK));
+					this.parent.queue.add(new Backup(fileId, body, chunkNo, this.parent.getId(), Backup.State.SAVECHUNK));
 				}
 				
 			}

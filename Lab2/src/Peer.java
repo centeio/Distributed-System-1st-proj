@@ -25,13 +25,13 @@ public class Peer implements PeerObj {
 	public MDR mdr;
 	private String name;
 	private String version;
-	private File directory;
+	public File directory;
 	private String folderName;
 	public Hashtable<String, ArrayList<Backup>> protocols;
 	public BlockingQueue<Object> queue;
 	//Threadpool para processar por ordem
 	public double space = 60; //em KB
-		
+	public int maxspace = 200;
 	public int getId() {	return id;}
 	public void setId(int id) {this.id = id;}
 	public Registry getRegistry() {return registry;}

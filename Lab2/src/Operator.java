@@ -25,6 +25,41 @@ public class Operator implements Runnable{
 	}
 
 	
+	public boolean reclaim(double space){
+		//check the amount of space to free
+		double tofree = space - (peer.maxspace - peer.directory.getTotalSpace()); 
+		
+		if(tofree > 0){
+			peer.space += tofree;
+		}else{
+			freeSpace(-tofree);
+		}
+		
+		
+		return false;
+		
+	}
+	
+	private void freeSpace(double tofree) {
+		double removed = 0;
+		tofree *= 1024; //convert to Byte
+		ArrayList<Backup> chunks;
+		for (String key: peer.protocols.keySet()) {
+			if((chunks = peer.protocols.get(key)) != null){
+				for (Backup chunk: chunks){
+					File f = new File("../peers/"+peer.getId()+"/"+chunk.getFileId()+"."+chunk.getChunkNo());
+					
+				}
+			}
+			
+			if(removed >= tofree){
+				break;
+			}
+		}
+		
+	}
+
+	
 	public static void divideFileIntoChunks(File file){
 		try{
 			chunks = new ArrayList<byte[]>();
