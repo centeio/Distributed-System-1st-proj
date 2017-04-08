@@ -13,14 +13,16 @@ public class MC implements Runnable {
 	public Thread t;
 	private MulticastSocket mcsocket;
 	public Peer parent;
-
+	public int receivedStored;
+	
 	public MC(String mcastaddr, String mcastport, Peer parent){
 		super();
 		this.parent = parent;
 		port = Integer.parseInt(mcastport);
 		mcast_addr = mcastaddr;
 		t = new Thread(this);
-		t.start();	
+		t.start();
+		receivedStored = 0;
 	}
 	
 	public int getPort() {
@@ -57,22 +59,17 @@ public class MC implements Runnable {
 	
 	@Override
 	public void run() {
-		try{	
+		try{
+			System.out.println("Ready to receive packet in MC");
+
 			mcsocket = new MulticastSocket(port);
 			mcsocket.setTimeToLive(1);	
 			mcsocket.joinGroup(InetAddress.getByName(mcast_addr));
-		}
-		catch(IOException e){
-			System.out.println("Try another address...");
-			return;
-		}
 		
-		byte[] rbuf = new byte[(int) Math.pow(2,16)];
-		DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
-		
-		while(true){
-			try{
-				System.out.println("will receive packet in MC ");		
+			while(true){
+				byte[] rbuf = new byte[(int) Math.pow(2,16)];
+				DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
+			
 				mcsocket.receive(packet);
 				
 				String message = new String(packet.getData(), "UTF-8");
@@ -91,13 +88,11 @@ public class MC implements Runnable {
 					chunkNo = Integer.parseInt(parts[4]);
 				}
 				
-				//System.out.println(fileId);
-				//System.out.println("Received " + type + " message from: \n\t\taddress:" + mcast_addr + "\n\t\tport: " + port);
-				
 				if(senderId != this.parent.getId()){
 					switch(type){
 					case "STORED":
-						System.out.println("STORED from " + senderId);
+						receivedStored++;
+						this.parent.queue.add(new Backup(fileId, null, senderId, Backup.State.RECEIVESTORED));
 						break;
 					case "GETCHUNK":
 						break;
@@ -108,12 +103,10 @@ public class MC implements Runnable {
 						break;
 					}
 				}
-			}catch(IOException e){
-				mcsocket.close();
-				return;
 			}
+		}catch(IOException e){
+			mcsocket.close();
+			return;
 		}
-
-	}	
-	
+	}
 }

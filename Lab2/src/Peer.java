@@ -62,10 +62,9 @@ public class Peer implements PeerObj {
 	    //creates dir for the peer
 	    directory = new File(this.folderName);
 	    directory.mkdir();
-	    
 	    //TODO: Threadpool stub
 	    ExecutorService executor = Executors.newFixedThreadPool(5);
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 2; i++) {
             Runnable worker = new Operator(this);
             executor.execute(worker);
           }
@@ -125,9 +124,10 @@ public class Peer implements PeerObj {
 			return;
 		}
 		
-		ArrayList<byte[]> chunks = Operator.divideFileIntoChunks(file);
+		Operator.divideFileIntoChunks(file);
+		
 		String fileId = Operator.sha256(filename + file.lastModified() + this.id);
-		this.queue.add(new Backup(fileId, this.id, repdegree, chunks));
+		this.queue.add(new Backup(fileId, this.id, repdegree));
 		System.out.println("Backing up " + filename);
 	}	
 	

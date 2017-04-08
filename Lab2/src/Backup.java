@@ -8,20 +8,35 @@ public class Backup {
 	public State state ;
 	private String fileId;
 	private int senderId;
-	private ArrayList<byte[]> chunks;
-	private int curr_chunk;
+	private byte[] chunk;
 	private int replication_degree;
 	
-	public Backup(String fileId, int senderId, int rep_degree, ArrayList<byte[]> chunks){
+	public int getReplication_degree() {
+		return replication_degree;
+	}
+
+	public void setReplication_degree(int replication_degree) {
+		this.replication_degree = replication_degree;
+	}
+
+	public Backup(String fileId, int senderId, int rep_degree){
 		super();
 
 		this.setFileId(fileId);
 		this.setSenderId(senderId);
-		this.chunks = chunks;
-		this.setCurr_chunk(0);
 		this.replication_degree = rep_degree;
 		
 		this.state = Backup.State.SENDCHUNK;
+	}
+
+	public Backup(String fileId, byte[] chunk, int senderId, State state) {
+		super();
+		
+		this.setChunk(chunk);
+		this.setFileId(fileId);
+		this.setSenderId(senderId);
+		
+		this.state = state;
 	}
 
 	public String getFileId() {
@@ -43,36 +58,15 @@ public class Backup {
 	public void setState(State state){
 		this.state = state;
 	}
-	
-	public boolean hasChunksLeft() {
-		try{
-			this.chunks.get(curr_chunk);
-			return true;
-		}catch(IndexOutOfBoundsException e){
-			return false;
-		}
-	}
-
-	public int getCurrChunkNo(){
-		return this.curr_chunk;
-	}
-	
+		
 	/**
 	 * PUTCHUNK <Version> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
 	 *
 	 * @return
 	 */
-	public String getPutchunk() {
-		String message = "PUTCHUNK 1.0 " + this.senderId + " " + this.fileId + " " + this.curr_chunk + " " + this.replication_degree + " \r\n\r\n";
+	public String getPutchunk(int curr_chunk) {
+		String message = "PUTCHUNK 1.0 " + this.senderId + " " + this.fileId + " " + curr_chunk + " " + this.replication_degree + " \r\n\r\n";
 		return message;
-	}
-
-	public byte[] getCurr_chunk() {
-		return this.chunks.get(this.curr_chunk);
-	}
-
-	public void setCurr_chunk(int curr_chunk) {
-		this.curr_chunk = curr_chunk;
 	}
 
 	/**
@@ -80,9 +74,17 @@ public class Backup {
 	 * 
 	 * @return
 	 */
-	public String getStored() {
-		String message = "STORED 1.0 " + this.senderId + " " + this.fileId + " " + this.curr_chunk + " \r\n\r\n";
+	public String getStored(int curr_chunk) {
+		String message = "STORED 1.0 " + this.senderId + " " + this.fileId + " " + curr_chunk + " \r\n\r\n";
 		return message;
+	}
+
+	public byte[] getChunk() {
+		return chunk;
+	}
+
+	public void setChunk(byte[] chunk) {
+		this.chunk = chunk;
 	}
 
 }

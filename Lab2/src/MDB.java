@@ -67,11 +67,12 @@ public class MDB implements Runnable {
 				DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 				
 				mcsocket.receive(packet);
-				
+								
 				String data = new String(packet.getData());
 				String[] data_split = data.split("[ ]+\\r\\n\\r\\n");
 				
 				String[] header = data_split[0].split(" ");
+				byte[] body = data_split[1].getBytes();
 				
 				String messageType = header[0];
 				String version = header[1];
@@ -79,10 +80,12 @@ public class MDB implements Runnable {
 				String fileId = header[3];
 				int chunkNo = Integer.parseInt(header[4]);
 				int replicationDeg = Integer.parseInt(header[5]);
-					
+				
 				if(this.parent.getId() != senderId){
-					System.out.println("PUTCHUNK from " + senderId);
+					System.out.println("Received PUTCHUNK from " + senderId);
+					this.parent.queue.add(new Backup(fileId, body, this.parent.getId(), Backup.State.SAVECHUNK));
 				}
+				
 			}
 		}
 		catch(IOException e){
