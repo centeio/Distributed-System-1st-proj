@@ -23,39 +23,54 @@ public class Operator implements Runnable{
 	}
 
 	
-	public boolean reclaim(double space){
+	
+	public boolean reclaim(double space) throws IOException{
 		//check the amount of space to free
-		double tofree = space - (peer.maxspace - peer.directory.getTotalSpace()); 
+		double freeSpace = space - peer.maxspace; 
 		
-		if(tofree > 0){
-			peer.space += tofree;
+		if(freeSpace > 0){
+			peer.space += freeSpace;
+			freeSpace(peer.directory.getTotalSpace());
 		}else{
-			freeSpace(-tofree);
+			freeSpace(space);
 		}
-		
 		
 		return false;
 		
 	}
 	
-	private void freeSpace(double tofree) {
+	private void freeSpace(double tofree) throws IOException {
 		double removed = 0;
 		tofree *= 1024; //convert to Byte
 		ArrayList<Backup> chunks;
+		MulticastSocket socket = new MulticastSocket();
+
 		for (String key: peer.protocols.keySet()) {
 			if((chunks = peer.protocols.get(key)) != null){
 				for (Backup chunk: chunks){
 					File f = new File("../peers/"+peer.getId()+"/"+chunk.getFileId()+"."+chunk.getChunkNo());
-					
+					long space = f.getTotalSpace();
+					if(f.delete()){
+						chunks.remove(chunk);
+						String message = "REMOVED " + peer.getVersion() + " " + peer.getId() + " " + chunk.getFileId() + " " + chunk.getChunkNo() + " <CRLF><CRLF>";
+						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
+						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
+						socket.send(packet);
+						removed += space;
+					}else{
+						System.out.println("Could not delete chunk "+chunk.getFileId() + "." + chunk.getChunkNo());
+					}
+					if(removed >= tofree){
+						socket.close();
+						break;
+					}
 				}
-			}
-			
-			if(removed >= tofree){
-				break;
 			}
 		}
 		
 	}
+
+	
 
 	
 	public void divideFileIntoChunks(String name){

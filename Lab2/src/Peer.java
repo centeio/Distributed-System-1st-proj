@@ -235,4 +235,7 @@ public class Peer implements PeerObj {
 		}
 		this.protocols.get(fileId).add(b);
 	}
+	public String getVersion() {
+		return version;
+	}
 }
