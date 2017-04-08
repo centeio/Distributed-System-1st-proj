@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -138,38 +139,8 @@ public class Operator implements Runnable{
 				Object protocol = peer.queue.take();
 				
 				//work 
-				if(protocol instanceof Delete){
-					Delete del = (Delete) protocol;
-					
-					if(del.state == Delete.State.DELETEFILE){
-						String message = del.getMessage();
-						MulticastSocket socket = new MulticastSocket();
-						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
-						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
-						socket.send(packet);
-						
-						System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
-						
-						del.updateState();
-					}
-					else if(del.state == Delete.State.DELETECHUNKS ){
-						final File folder = peer.getDirectory();
-						final String filename = del.getFileId();
-						final File[] files = folder.listFiles( new FilenameFilter(){
-
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.matches( filename + ".*" );
-							}
-							
-						});
-						for ( final File file : files ) {
-						    if ( !file.delete() ) {
-						        System.err.println( "Can't remove " + file.getAbsolutePath() );
-						    }
-						}
-						del.updateState();
-					}
+				if(protocol instanceof Delete){					
+					updateDelete((Delete) protocol);
 				}else if(protocol instanceof Backup){
 					Backup bkup = (Backup) protocol;
 
@@ -269,6 +240,48 @@ public class Operator implements Runnable{
 				e.printStackTrace();
 			}
 		}
+	}
+
+
+	private void updateDelete(Delete protocol) throws IOException, InterruptedException {
+		switch(protocol.state){
+		case DELETEFILE:
+			String message = protocol.getMessage();
+			MulticastSocket socket = new MulticastSocket();
+			InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
+			DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
+			socket.send(packet);
+			
+			System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
+			
+			break;
+		case DELETECHUNKS:
+			final File folder = peer.getDirectory();
+			final String filename = protocol.getFileId();
+			final File[] files = folder.listFiles( new FilenameFilter(){
+
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.matches( filename + ".*" );
+				}
+				
+			});
+			for ( final File file : files ) {
+			    if ( !file.delete() ) {
+			        System.err.println( "Can't remove " + file.getAbsolutePath() );
+			    }
+			}
+			
+			break;
+		default:
+			break;
+		}
+		
+		if(protocol.updateState() != Delete.State.DONE){
+			this.peer.queue.put(protocol);
+		}
+		else
+			System.out.println("Delete " + protocol.getFileId() + " done");
 	}
 	
 	public void receiveStored(){
