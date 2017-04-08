@@ -20,6 +20,7 @@ public class Operator implements Runnable{
 		super();
 		this.peer = peer;
 	}
+
 	
 	static public ArrayList<byte[]> divideFileIntoChunks(File file){
 		try{

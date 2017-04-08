@@ -27,7 +27,7 @@ public class Peer implements PeerObj {
 	private String version;
 	private File directory;
 	private String folderName;
-	public Hashtable protocols;
+	public Hashtable<String, ArrayList<Backup>> protocols;
 	public BlockingQueue<Object> queue;
 	//Threadpool para processar por ordem
 	public double space = 60; //em KB
@@ -51,6 +51,8 @@ public class Peer implements PeerObj {
 		this.mdr = new MDR(args[7], args[8],this);
 		
 		this.queue = new LinkedBlockingQueue<Object>();
+		this.protocols = new Hashtable<String,ArrayList<Backup>>();
+		//TODO put in hashtable
 		
 	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
 
