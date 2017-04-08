@@ -93,7 +93,7 @@ public class MC implements Runnable {
 					case "STORED":
 						receivedStored++;
 						chunkNo = Integer.parseInt(parts[4]);
-						this.parent.queue.add(new Backup(fileId, null, chunkNo, senderId, Backup.State.RECEIVESTORED));
+						this.parent.queue.add(new Backup(fileId, null, chunkNo, senderId, 0, Backup.State.RECEIVESTORED));
 						break;
 					case "GETCHUNK":
 						break;

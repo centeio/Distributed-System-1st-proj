@@ -120,16 +120,12 @@ public class Peer implements PeerObj {
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException{
 		File file = new File(filename);
-		filename = file.getName();
 		if(!file.exists()){
 			System.out.println("File does not exist.");
 			return;
 		}
-		
-		Operator.divideFileIntoChunks(file);
-		
-		String fileId = Operator.sha256(filename + file.lastModified() + this.id);
-		this.queue.add(new Backup(fileId, this.id, repdegree));
+	
+		this.queue.add(new BackupInitiator(filename, this.id, repdegree));
 		System.out.println("Backing up " + filename);
 	}	
 	
@@ -232,5 +228,11 @@ public class Peer implements PeerObj {
 
 	public File getDirectory() {
 		return directory;
+	}
+	public void addBackup(String fileId, Backup b) {
+		if(this.protocols.get(fileId) == null){
+			this.protocols.put(fileId, new ArrayList<Backup>());
+		}
+		this.protocols.get(fileId).add(b);
 	}
 }

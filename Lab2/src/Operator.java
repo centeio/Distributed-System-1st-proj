@@ -9,19 +9,16 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+
 
 public class Operator implements Runnable{
 	
 	private Peer peer;
-	private static ArrayList<byte[]> chunks;
-	private int currChunk;
+	private ArrayList<byte[]> chunks;
 	
 	public Operator(Peer peer) {
 		super();
 		this.peer = peer;
-		this.currChunk = 0;
 	}
 
 	
@@ -60,8 +57,10 @@ public class Operator implements Runnable{
 	}
 
 	
-	public static void divideFileIntoChunks(File file){
+	public void divideFileIntoChunks(String name){
 		try{
+			File file = new File(name);
+
 			chunks = new ArrayList<byte[]>();
 			
 			FileInputStream stream = new FileInputStream(file);
@@ -69,7 +68,7 @@ public class Operator implements Runnable{
 
 			byte[] chunkData;
 			long filelength = file.length();
-			int chunkMaxSize = 1024 * 64;
+			int chunkMaxSize = 1000 * 64;
 			int readLength = chunkMaxSize;
 			
 			while(filelength > 0){
@@ -87,7 +86,7 @@ public class Operator implements Runnable{
 					break;
 				}
 				chunks.add(chunkData);
-				
+
 				chunkData = null;
 			}
 			
@@ -95,13 +94,13 @@ public class Operator implements Runnable{
 			stream = null;
 			socket.close();
 		}catch(FileNotFoundException e){
-			System.out.println("File " + file.getName() + " not found");
+			System.out.println("File " + name + " not found");
 			return;
 		}catch(SecurityException e){
-			System.out.println("Denied reading file " + file.getName());
+			System.out.println("Denied reading file " + name);
 			return;
 		} catch (IOException e) {
-			System.out.println("Error closing stream of file " + file.getName());
+			System.out.println("Error closing stream of file " + name);
 			return;
 		}
 	}
@@ -170,15 +169,26 @@ public class Operator implements Runnable{
 						}
 						del.updateState();
 					}
+				}else if(protocol instanceof BackupInitiator){
+					BackupInitiator bkupInit = (BackupInitiator) protocol;
+					File f = new File(bkupInit.getFileName());
+					divideFileIntoChunks(bkupInit.getFileName());
+					String file_id = sha256(f.getName() + f.lastModified() + bkupInit.getPeerID());
+
+					for(int i = 0; i < this.chunks.size(); i++){
+						this.peer.queue.add(new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK));
+					}
 				}else if(protocol instanceof Backup){
 					Backup bkup = (Backup) protocol;
 
 					if(bkup.state == Backup.State.SENDCHUNK){
-						String message_header = bkup.getPutchunk(currChunk + 1);
+						String message_header = bkup.getPutchunk();
 						byte[] message_header_bytes = message_header.getBytes();
-						byte[] message_body = chunks.get(currChunk);
+						byte[] message_body = bkup.getChunk();
 						byte[] putchunk = new byte[message_header_bytes.length + message_body.length];
 						
+						System.out.println(putchunk.length);
+
 						for(int i = 0; i < putchunk.length; i++){
 							if(i < message_header_bytes.length){
 								putchunk[i] = message_header_bytes[i];
@@ -210,21 +220,20 @@ public class Operator implements Runnable{
 						}
 						socket.close();
 						
-						System.out.println("Received all STORED messages");
-						bkup.setState(Backup.State.DONE);
+						System.out.println("Received all STORED messages for chunk " + bkup.getChunkNo());
 						
-						this.peer.queue.put(protocol);
+						bkup.setState(Backup.State.DONE);
 					}else if(bkup.state == Backup.State.SAVECHUNK){
-						byte[] chunkData = bkup.getChunk();
-						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + (currChunk + 1));
+						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + bkup.getChunkNo());
+						
 						if(!output.exists()){
 							FileOutputStream chunk = new FileOutputStream(output);
-							chunk.write(chunkData);
+							chunk.write(bkup.getChunk());
 							chunk.flush();
 							chunk.close();
 							//aumenta rep_degree
 					
-							String message = bkup.getStored(currChunk + 1);
+							String message = bkup.getStored();
 							MulticastSocket socket = new MulticastSocket();
 							InetAddress address = InetAddress.getByName(this.peer.mc.getMcast_addr());
 							DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, this.peer.mc.getPort());
@@ -239,20 +248,7 @@ public class Operator implements Runnable{
 							socket.close();
 						}
 					}else if(bkup.state == Backup.State.RECEIVESTORED){
-						System.out.println("Received STORED message from " + bkup.getSenderId());
-
-						if(bkup.getChunk() != null){
-							if(currChunk < chunks.size()){
-								currChunk++;
-								bkup.setState(Backup.State.SENDCHUNK);
-							}else{
-								currChunk = 0;
-								bkup.setState(Backup.State.DONE);
-							}
-						}
-						
-					}else if(bkup.state == Backup.State.DONE){
-						System.out.println("Done backing up");
+						System.out.println("Received STORED message from " + bkup.getSenderId());					
 					}
 				}
 				

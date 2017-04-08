@@ -19,7 +19,7 @@ public class Backup {
 	public void setReplication_degree(int replication_degree) {
 		this.replication_degree = replication_degree;
 	}
-
+	
 	public Backup(String fileId, int senderId, int rep_degree){
 		super();
 
@@ -30,13 +30,14 @@ public class Backup {
 		this.state = Backup.State.SENDCHUNK;
 	}
 
-	public Backup(String fileId, byte[] chunk, int chunkNo, int senderId, State state) {
+	public Backup(String fileId, byte[] chunk, int chunkNo, int senderId, int rep_degree, State state) {
 		super();
 		
 		this.setChunk(chunk);
 		this.setFileId(fileId);
 		this.setSenderId(senderId);
 		this.setChunkNo(chunkNo);
+		this.setReplication_degree(rep_degree);
 		
 		this.state = state;
 	}
@@ -66,8 +67,8 @@ public class Backup {
 	 *
 	 * @return
 	 */
-	public String getPutchunk(int curr_chunk) {
-		String message = "PUTCHUNK 1.0 " + this.senderId + " " + this.fileId + " " + curr_chunk + " " + this.replication_degree + " \r\n\r\n";
+	public String getPutchunk() {
+		String message = "PUTCHUNK 1.0 " + this.senderId + " " + this.fileId + " " + this.chunkNo + " " + this.replication_degree + " \r\n\r\n";
 		return message;
 	}
 
@@ -76,8 +77,8 @@ public class Backup {
 	 * 
 	 * @return
 	 */
-	public String getStored(int curr_chunk) {
-		String message = "STORED 1.0 " + this.senderId + " " + this.fileId + " " + curr_chunk + " \r\n\r\n";
+	public String getStored() {
+		String message = "STORED 1.0 " + this.senderId + " " + this.fileId + " " + this.chunkNo + " \r\n\r\n";
 		return message;
 	}
 

@@ -68,12 +68,13 @@ public class MDB implements Runnable {
 				
 				mcsocket.receive(packet);
 								
-				String data = new String(packet.getData());
+				String data = new String(packet.getData(), "UTF-8");
+				
 				String[] data_split = data.split("[ ]+\\r\\n\\r\\n");
 				
 				String[] header = data_split[0].split(" ");
 				byte[] body = data_split[1].getBytes();
-				
+
 				String messageType = header[0];
 				String version = header[1];
 				int senderId = Integer.parseInt(header[2]);
@@ -82,8 +83,10 @@ public class MDB implements Runnable {
 				int replicationDeg = Integer.parseInt(header[5]);
 				
 				if(this.parent.getId() != senderId){
-					System.out.println("Received PUTCHUNK from " + senderId);
-					this.parent.queue.add(new Backup(fileId, body, chunkNo, this.parent.getId(), Backup.State.SAVECHUNK));
+					System.out.println("Received PUTCHUNK from peer " + senderId);
+					Backup b = new Backup(fileId, body, chunkNo, this.parent.getId(), replicationDeg, Backup.State.SAVECHUNK);
+					this.parent.queue.add(b);
+					this.parent.addBackup(fileId, b);
 				}
 				
 			}
