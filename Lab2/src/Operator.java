@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 
@@ -14,65 +15,53 @@ import java.util.ArrayList;
 public class Operator implements Runnable{
 	
 	private Peer peer;
-	private static ArrayList<byte[]> chunks;
-	private int currChunk;
+	private ArrayList<byte[]> chunks;
 	
 	public Operator(Peer peer) {
 		super();
 		this.peer = peer;
-		this.currChunk = 0;
 	}
 
 	
-	public boolean reclaim(double space) throws IOException{
+	public boolean reclaim(double space){
 		//check the amount of space to free
-		double freeSpace = space - peer.maxspace; 
+		double tofree = space - (peer.maxspace - peer.directory.getTotalSpace()); 
 		
-		if(freeSpace > 0){
-			peer.space += freeSpace;
-			freeSpace(peer.directory.getTotalSpace());
+		if(tofree > 0){
+			peer.space += tofree;
 		}else{
-			freeSpace(space);
+			freeSpace(-tofree);
 		}
+		
 		
 		return false;
 		
 	}
 	
-	private void freeSpace(double tofree) throws IOException {
+	private void freeSpace(double tofree) {
 		double removed = 0;
 		tofree *= 1024; //convert to Byte
 		ArrayList<Backup> chunks;
-		MulticastSocket socket = new MulticastSocket();
-
 		for (String key: peer.protocols.keySet()) {
 			if((chunks = peer.protocols.get(key)) != null){
 				for (Backup chunk: chunks){
 					File f = new File("../peers/"+peer.getId()+"/"+chunk.getFileId()+"."+chunk.getChunkNo());
-					long space = f.getTotalSpace();
-					if(f.delete()){
-						chunks.remove(chunk);
-						String message = "REMOVED " + peer.getVersion() + " " + peer.getId() + " " + chunk.getFileId() + " " + chunk.getChunkNo() + " <CRLF><CRLF>";
-						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
-						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
-						socket.send(packet);
-						removed += space;
-					}else{
-						System.out.println("Could not delete chunk "+chunk.getFileId() + "." + chunk.getChunkNo());
-					}
-					if(removed >= tofree){
-						socket.close();
-						break;
-					}
+					
 				}
+			}
+			
+			if(removed >= tofree){
+				break;
 			}
 		}
 		
 	}
 
 	
-	public static void divideFileIntoChunks(File file){
+	public void divideFileIntoChunks(String name){
 		try{
+			File file = new File(name);
+
 			chunks = new ArrayList<byte[]>();
 			
 			FileInputStream stream = new FileInputStream(file);
@@ -98,7 +87,7 @@ public class Operator implements Runnable{
 					break;
 				}
 				chunks.add(chunkData);
-				
+
 				chunkData = null;
 			}
 			
@@ -106,13 +95,13 @@ public class Operator implements Runnable{
 			stream = null;
 			socket.close();
 		}catch(FileNotFoundException e){
-			System.out.println("File " + file.getName() + " not found");
+			System.out.println("File " + name + " not found");
 			return;
 		}catch(SecurityException e){
-			System.out.println("Denied reading file " + file.getName());
+			System.out.println("Denied reading file " + name);
 			return;
 		} catch (IOException e) {
-			System.out.println("Error closing stream of file " + file.getName());
+			System.out.println("Error closing stream of file " + name);
 			return;
 		}
 	}
@@ -158,7 +147,7 @@ public class Operator implements Runnable{
 						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
 						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
 						socket.send(packet);
-						socket.close();
+						
 						System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
 						
 						del.updateState();
@@ -181,13 +170,22 @@ public class Operator implements Runnable{
 						}
 						del.updateState();
 					}
+				}else if(protocol instanceof BackupInitiator){
+					BackupInitiator bkupInit = (BackupInitiator) protocol;
+					File f = new File(bkupInit.getFileName());
+					divideFileIntoChunks(bkupInit.getFileName());
+					String file_id = sha256(f.getName() + f.lastModified() + bkupInit.getPeerID());
+
+					for(int i = 0; i < this.chunks.size(); i++){
+						this.peer.queue.add(new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK));
+					}
 				}else if(protocol instanceof Backup){
 					Backup bkup = (Backup) protocol;
 
 					if(bkup.state == Backup.State.SENDCHUNK){
-						String message_header = bkup.getPutchunk(currChunk + 1);
+						String message_header = bkup.getPutchunk();
 						byte[] message_header_bytes = message_header.getBytes();
-						byte[] message_body = chunks.get(currChunk);
+						byte[] message_body = bkup.getChunk();
 						byte[] putchunk = new byte[message_header_bytes.length + message_body.length];
 						
 						for(int i = 0; i < putchunk.length; i++){
@@ -221,21 +219,20 @@ public class Operator implements Runnable{
 						}
 						socket.close();
 						
-						System.out.println("Received all STORED messages");
-						bkup.setState(Backup.State.DONE);
+						System.out.println("Received all STORED messages for chunk " + bkup.getChunkNo());
 						
-						this.peer.queue.put(protocol);
+						bkup.setState(Backup.State.DONE);
 					}else if(bkup.state == Backup.State.SAVECHUNK){
-						byte[] chunkData = bkup.getChunk();
-						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + (currChunk + 1));
+						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + bkup.getChunkNo());
+						
 						if(!output.exists()){
 							FileOutputStream chunk = new FileOutputStream(output);
-							chunk.write(chunkData);
+							chunk.write(bkup.getChunk());
 							chunk.flush();
 							chunk.close();
 							//aumenta rep_degree
 					
-							String message = bkup.getStored(currChunk + 1);
+							String message = bkup.getStored();
 							MulticastSocket socket = new MulticastSocket();
 							InetAddress address = InetAddress.getByName(this.peer.mc.getMcast_addr());
 							DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, this.peer.mc.getPort());
@@ -250,20 +247,7 @@ public class Operator implements Runnable{
 							socket.close();
 						}
 					}else if(bkup.state == Backup.State.RECEIVESTORED){
-						System.out.println("Received STORED message from " + bkup.getSenderId());
-
-						if(bkup.getChunk() != null){
-							if(currChunk < chunks.size()){
-								currChunk++;
-								bkup.setState(Backup.State.SENDCHUNK);
-							}else{
-								currChunk = 0;
-								bkup.setState(Backup.State.DONE);
-							}
-						}
-						
-					}else if(bkup.state == Backup.State.DONE){
-						System.out.println("Done backing up");
+						System.out.println("Received STORED message from " + bkup.getSenderId());					
 					}
 				}
 				
@@ -280,6 +264,48 @@ public class Operator implements Runnable{
 				e.printStackTrace();
 			}
 		}
+	}
+
+
+	private void updateDelete(Delete protocol) throws IOException, InterruptedException {
+		switch(protocol.state){
+		case DELETEFILE:
+			String message = protocol.getMessage();
+			MulticastSocket socket = new MulticastSocket();
+			InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
+			DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
+			socket.send(packet);
+			
+			System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
+			
+			break;
+		case DELETECHUNKS:
+			final File folder = peer.getDirectory();
+			final String filename = protocol.getFileId();
+			final File[] files = folder.listFiles( new FilenameFilter(){
+
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.matches( filename + ".*" );
+				}
+				
+			});
+			for ( final File file : files ) {
+			    if ( !file.delete() ) {
+			        System.err.println( "Can't remove " + file.getAbsolutePath() );
+			    }
+			}
+			
+			break;
+		default:
+			break;
+		}
+		
+		if(protocol.updateState() != Delete.State.DONE){
+			this.peer.queue.put(protocol);
+		}
+		else
+			System.out.println("Delete " + protocol.getFileId() + " done");
 	}
 	
 	public void receiveStored(){
