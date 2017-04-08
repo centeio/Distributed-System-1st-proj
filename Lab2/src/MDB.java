@@ -75,6 +75,8 @@ public class MDB implements Runnable {
 				String[] header = data_split[0].split(" ");
 				byte[] body = data_split[1].getBytes();
 
+				System.out.println(body.length);
+				
 				String messageType = header[0];
 				String version = header[1];
 				int senderId = Integer.parseInt(header[2]);
