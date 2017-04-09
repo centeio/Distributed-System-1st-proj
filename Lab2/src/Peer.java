@@ -28,60 +28,62 @@ public class Peer implements PeerObj {
 	public double space = 60; //em KB
 	public int maxspace = 200;
 	private int receivedStored;
-	public int getId() {	return id;}
-	public void setId(int id) {this.id = id;}
-	public Registry getRegistry() {return registry;}
-	private boolean initiator = false;
-	
-	public void setRegistry(Registry registry) {
-		this.registry = registry;
-	}
-	
-	public Peer(String[] args) throws RemoteException {
-		//<name> <mcast_addr> <mc> <mdb> <mdr>
-		super();
-		this.id = Integer.parseInt(args[1]);
-		this.name = args[2];
-		
-		this.mc = new MC(args[3], args[4],this);
-		this.mdb = new  MDB(args[5], args[6],this);
-		this.mdr = new MDR(args[7], args[8],this);
-		
-		this.queue = new LinkedBlockingQueue<Object>();
-		this.protocols = new Hashtable<String,ArrayList<Backup>>();
-		//TODO put in hashtable
-		
-	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
-
-	    // Bind the remote object's stub in the registry
-	    this.registry = LocateRegistry.getRegistry();
-	    this.registry.rebind(this.name, stub);
-	    
-	    this.folderName = "../peers/"+this.id;
-	    //creates dir for the peer
-	    directory = new File(this.folderName);
-	    directory.mkdir();
-	    //TODO: Threadpool stub
-	    ExecutorService executor = Executors.newFixedThreadPool(5);
-        for (int i = 0; i < 2; i++) {
-            Runnable worker = new Operator(this);
-            executor.execute(worker);
-          }
-        executor.shutdown();
-        while (!executor.isTerminated()) {
-        }
-        System.out.println("Finished all threads");
-	    
-	}
+	private boolean initiator;
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
-	
-		if(args.length != 9){
-			System.out.println("Usage: Peer <version> <id> <name> <mc_addr> <mc> <mdb_addr> <mdb> <mdr_addr> <mdr>");
+		if(args.length != 8){
+			System.out.println("Usage: Peer <version> <id> <mc_addr> <mc> <mdb_addr> <mdb> <mdr_addr> <mdr>");
 			return;
 		}		
 		
-	    Peer obj = new Peer(args);
+	    new Peer(args);
+	}
+	
+	public Peer(String[] args) throws RemoteException {
+		super();
+
+	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
+	    
+		this.id = Integer.parseInt(args[1]);
+		this.mc = new MC(args[2], args[3],this);
+		this.mdb = new  MDB(args[4], args[5],this);
+		this.mdr = new MDR(args[6], args[7],this);
+		this.queue = new LinkedBlockingQueue<Object>();
+		this.protocols = new Hashtable<String,ArrayList<Backup>>();
+
+	    this.registry = LocateRegistry.getRegistry();
+	    this.registry.rebind(args[1], stub);
+	    
+	    this.folderName = "../peers/" + this.id;
+
+	    this.directory = new File(this.folderName);
+	    this.directory.mkdir();
+
+	    this.initiator = false;
+	    
+	    ExecutorService executor = Executors.newFixedThreadPool(5);
+        for (int i = 0; i < 1; i++) {
+            Runnable worker = new Operator(this);
+            executor.execute(worker);
+        }
+        executor.shutdown();
+        while (!executor.isTerminated()) {}
+	}
+	
+	public int getId() {
+		return id;
+	}
+	
+	public void setId(int id) {
+		this.id = id;
+	}
+	
+	public Registry getRegistry() {
+		return registry;
+	}
+	
+	public void setRegistry(Registry registry) {
+		this.registry = registry;
 	}
 	
 	@Override
@@ -109,8 +111,6 @@ public class Peer implements PeerObj {
 	/**
 	 * 
 	 * Backup
-	 * 
-	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
 	 * 
 	 * @param filename
 	 * @param repdegree
