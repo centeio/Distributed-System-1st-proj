@@ -166,7 +166,7 @@ public class Operator implements Runnable{
 				}else if(protocol instanceof Backup){
 					Backup bkup = (Backup) protocol;
 
-					if(bkup.state == Backup.State.SENDCHUNK){
+					if(bkup.getState() == Backup.State.SENDCHUNK){
 						String message_header = bkup.getPutchunk();
 						byte[] message_header_bytes = message_header.getBytes();
 						byte[] message_body = bkup.getChunk();
@@ -207,7 +207,7 @@ public class Operator implements Runnable{
 						
 						bkup.setState(Backup.State.DONE);
 						this.peer.queue.add(protocol);
-					}else if(bkup.state == Backup.State.SAVECHUNK){
+					}else if(bkup.getState() == Backup.State.SAVECHUNK){
 						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + bkup.getChunkNo());
 						
 						if(!output.exists()){
@@ -233,9 +233,9 @@ public class Operator implements Runnable{
 							bkup.setState(Backup.State.DONE);
 							this.peer.queue.add(protocol);
 						}
-					}else if(bkup.state == Backup.State.RECEIVESTORED){
+					}else if(bkup.getState() == Backup.State.RECEIVESTORED){
 						System.out.println("Received STORED message from " + bkup.getSenderId());					
-					}else if(bkup.state == Backup.State.DONE){
+					}else if(bkup.getState() == Backup.State.DONE){
 						System.out.println("Chunk number " + bkup.getChunkNo() + " stored.");					
 					}
 				}else if(protocol instanceof Reclaim){
