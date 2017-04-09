@@ -180,12 +180,13 @@ public class Operator implements Runnable{
 							}
 						}
 						
+						System.out.println("Sending PUTCHUNK message");
+
 						MulticastSocket socket = new MulticastSocket();
 						InetAddress address = InetAddress.getByName(this.peer.mdb.getMcast_addr());
 						DatagramPacket packet = new DatagramPacket(putchunk, putchunk.length, address, this.peer.mdb.getPort());
 						socket.send(packet);
 						
-						System.out.println("Sending PUTCHUNK message");
 						System.out.println("Waiting STORED");
 						
 						int timeout = 1000;
@@ -193,18 +194,19 @@ public class Operator implements Runnable{
 						
 						Thread.sleep(timeout);
 						while(this.peer.getReceivedStored() < bkup.getReplication_degree() && actualtries < 5){
+							this.peer.setReceivedStored(0);
 							System.out.println("Retransmiting PUTCHUNK...");
-							this.peer.mc.receivedStored = 0;
 							actualtries++;
 							socket.send(packet);
 							timeout = timeout * 2;
 							Thread.sleep(timeout);
 						}
 						socket.close();
-						
+
 						System.out.println("Received all STORED messages for chunk " + bkup.getChunkNo());
 						
 						bkup.setState(Backup.State.DONE);
+						this.peer.queue.add(protocol);
 					}else if(bkup.state == Backup.State.SAVECHUNK){
 						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + bkup.getChunkNo());
 						
@@ -213,8 +215,9 @@ public class Operator implements Runnable{
 							chunk.write(bkup.getChunk());
 							chunk.flush();
 							chunk.close();
-							//aumenta rep_degree
-					
+				
+							System.out.println("Sending STORED message");
+							
 							String message = bkup.getStored();
 							MulticastSocket socket = new MulticastSocket();
 							InetAddress address = InetAddress.getByName(this.peer.mc.getMcast_addr());
@@ -224,24 +227,21 @@ public class Operator implements Runnable{
 							Thread.sleep(randomTime);
 							
 							socket.send(packet);
-														
-							System.out.println("Sending STORED message");
 							
 							socket.close();
+							
+							bkup.setState(Backup.State.DONE);
+							this.peer.queue.add(protocol);
 						}
 					}else if(bkup.state == Backup.State.RECEIVESTORED){
 						System.out.println("Received STORED message from " + bkup.getSenderId());					
+					}else if(bkup.state == Backup.State.DONE){
+						System.out.println("Chunk number " + bkup.getChunkNo() + " stored.");					
 					}
 				}else if(protocol instanceof Reclaim){
 					reclaim(((Reclaim) protocol).getSpace());
 					System.out.println("Reclaim done");
 				}
-				
-				//if not done
-				//this.peer.queue.put(protocol);
-				//else
-				//peer.protocols.put(id, protocol);
-				
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -285,9 +285,6 @@ public class Operator implements Runnable{
 		else
 			System.out.println("Delete " + protocol.getFileId() + " done");
 	}
-
-
-
 	private void deleteChunks(final String fileId) {
 		final File folder = peer.getDirectory();
 		final File[] files = folder.listFiles( new FilenameFilter(){

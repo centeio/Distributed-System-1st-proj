@@ -256,4 +256,35 @@ public class Peer implements PeerObj {
 	public void setInitiator(boolean initiator) {
 		this.initiator = initiator;
 	}
+	
+	public int countRepDegree(String fileID, int chunkN){
+		ArrayList<Backup> backups = this.protocols.get(fileID);
+		
+		int count = 0;
+		
+		for(Backup b : backups){
+			if(b.getChunkNo() == chunkN){
+				count++;
+			}
+		}
+		
+		return count;
+	}
+	public boolean canSaveChunk(String fileId, int chunkNo, int rep) {
+		ArrayList<Backup> backups = this.protocols.get(fileId);
+
+		if(backups == null) return true;
+		
+		int count = 0;
+		for(Backup b : backups){
+			if(b.getChunkNo() == chunkNo){
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	public int getNumberChunks(String fileId, int chunkNo) {
+		return this.mc.getNumberChunks(fileId,chunkNo);
+	}
 }
