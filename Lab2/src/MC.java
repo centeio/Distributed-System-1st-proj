@@ -91,11 +91,13 @@ public class MC implements Runnable {
 				switch(type){
 					case "STORED":
 						chunkNo = Integer.parseInt(parts[4]);
-						
-						if(this.parent.isInitiator()){// Se for o peer initiator
-							this.parent.setReceivedStored(this.parent.getReceivedStored() + 1);
-						}else{
-							this.parent.addBackup(fileId, new Backup(fileId, null, chunkNo, senderId, 0, Backup.State.RECEIVESTORED));
+						if(this.parent.isInitiator()){
+							this.parent.setReceivedStored(this.parent.getReceivedStored()+1);
+							//TODO pode-se tirar isto, depois, certo?
+							this.parent.queue.add(new Backup(fileId, null, chunkNo, senderId, 0, Backup.State.RECEIVESTORED));
+						}
+						else{
+							this.parent.chunkStored(fileId, chunkNo);
 						}
 						break;
 					case "GETCHUNK":
@@ -104,7 +106,8 @@ public class MC implements Runnable {
 						this.parent.queue.add(new Delete(fileId));
 						break;
 					case "REMOVED":
-						this.parent.setReceivedStored(this.parent.getReceivedStored()-1);
+						chunkNo = Integer.parseInt(parts[4]);
+						this.parent.chunkRemoved(fileId, chunkNo);
 						break;
 				}
 			}

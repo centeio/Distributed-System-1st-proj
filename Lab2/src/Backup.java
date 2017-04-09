@@ -9,6 +9,7 @@ public class Backup {
 	private byte[] chunk;
 	private int chunkNo;
 	private int replication_degree;
+	private int ncopies = 0;
 	
 	/**
 	 * Constructor for a Backup object
@@ -163,5 +164,13 @@ public class Backup {
 	 */
 	public void setState(State state){
 		this.state = state;
+	}
+
+	public int getNcopies() {
+		return ncopies;
+	}
+
+	public void setNcopies(int ncopies) {
+		this.ncopies = ncopies;
 	}
 }
