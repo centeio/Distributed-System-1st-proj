@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.ArrayList;
+import java.util.Hashtable;
 
 //STORED	<Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
 //GETCHUNK	<Version> <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
@@ -13,16 +15,14 @@ public class MC implements Runnable {
 	public Thread t;
 	private MulticastSocket mcsocket;
 	public Peer parent;
-	public int receivedStored;
 	
 	public MC(String mcastaddr, String mcastport, Peer parent){
 		super();
 		this.parent = parent;
-		port = Integer.parseInt(mcastport);
-		mcast_addr = mcastaddr;
-		t = new Thread(this);
-		t.start();
-		receivedStored = 0;
+		this.port = Integer.parseInt(mcastport);
+		this.mcast_addr = mcastaddr;
+		this.t = new Thread(this);
+		this.t.start();
 	}
 	
 	public int getPort() {
@@ -88,14 +88,14 @@ public class MC implements Runnable {
 					chunkNo = Integer.parseInt(parts[4]);
 				}
 				
-				if(senderId != this.parent.getId()){
-					switch(type){
+				switch(type){
 					case "STORED":
-						if(this.parent.isInitiator()){
-							this.parent.setReceivedStored(this.parent.getReceivedStored()+1);
-							chunkNo = Integer.parseInt(parts[4]);
-							//TODO pode-se tirar isto, depois, certo?
-							this.parent.queue.add(new Backup(fileId, null, chunkNo, senderId, 0, Backup.State.RECEIVESTORED));
+						chunkNo = Integer.parseInt(parts[4]);
+						
+						if(this.parent.isInitiator()){// Se for o peer initiator
+							this.parent.setReceivedStored(this.parent.getReceivedStored() + 1);
+						}else{
+							this.parent.addBackup(fileId, new Backup(fileId, null, chunkNo, senderId, 0, Backup.State.RECEIVESTORED));
 						}
 						break;
 					case "GETCHUNK":
@@ -106,12 +106,21 @@ public class MC implements Runnable {
 					case "REMOVED":
 						this.parent.setReceivedStored(this.parent.getReceivedStored()-1);
 						break;
-					}
 				}
 			}
 		}catch(IOException e){
 			mcsocket.close();
 			return;
 		}
+	}
+
+	public int getNumberChunks(String fileId, int chunkNo) {
+		if(!this.parent.isInitiator()){
+			ArrayList<Backup> backups = this.parent.protocols.get(fileId);
+			
+			if(backups == null) return 0;
+		}
+
+		return 0;
 	}
 }
