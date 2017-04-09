@@ -36,6 +36,7 @@ public class Peer implements PeerObj {
 	public int getId() {	return id;}
 	public void setId(int id) {this.id = id;}
 	public Registry getRegistry() {return registry;}
+	private boolean initiator = false;
 	
 	public void setRegistry(Registry registry) {
 		this.registry = registry;
@@ -90,6 +91,8 @@ public class Peer implements PeerObj {
 	
 	@Override
 	public void delete(String filename) throws RemoteException { //Restore and delete		
+		this.setInitiator(true);
+		
 		File file = new File(filename);
 		filename = file.getName();
 		if(!file.exists()){
@@ -120,6 +123,8 @@ public class Peer implements PeerObj {
 	 */
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException{
+		this.setInitiator(true);
+		
 		File file = new File(filename);
 		if(!file.exists()){
 			System.out.println("File does not exist.");
@@ -132,6 +137,8 @@ public class Peer implements PeerObj {
 	
 	@Override
 	public void restore(String file) throws IOException {
+		this.setInitiator(true);
+		
 		String chunkNo = "ch1";
 		//TODO get chunkNo
 		String message = "GETCHUNK " + version + " " + id + " " + file + " " + chunkNo +" <CRLF><CRLF>";
@@ -155,6 +162,8 @@ public class Peer implements PeerObj {
 		
 	@Override
 	public void reclaim(int space) throws RemoteException { //Reclaim
+		this.setInitiator(true);
+		
 		this.queue.add(new Reclaim(space));
 	}	
 	
@@ -245,6 +254,11 @@ public class Peer implements PeerObj {
 	public void setReceivedStored(int receivedStored) {
 		this.receivedStored = receivedStored;
 		
-		//TODO Posso fazer aqui um new Backup quando o receivedStore é menor que o rep degree??
+	}
+	public boolean isInitiator() {
+		return initiator;
+	}
+	public void setInitiator(boolean initiator) {
+		this.initiator = initiator;
 	}
 }
