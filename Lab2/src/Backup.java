@@ -11,7 +11,7 @@ public class Backup {
 	private byte[] chunk;
 	private int chunkNo;
 	private int replication_degree;
-	
+	private int ncopies = 0;
 	public int getReplication_degree() {
 		return replication_degree;
 	}
@@ -96,6 +96,14 @@ public class Backup {
 
 	public void setChunkNo(int chunkNo) {
 		this.chunkNo = chunkNo;
+	}
+
+	public int getNcopies() {
+		return ncopies;
+	}
+
+	public void setNcopies(int ncopies) {
+		this.ncopies = ncopies;
 	}
 
 }

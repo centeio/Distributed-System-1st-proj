@@ -261,4 +261,35 @@ public class Peer implements PeerObj {
 	public void setInitiator(boolean initiator) {
 		this.initiator = initiator;
 	}
+	
+	public Backup getChunk(String fileId, int chunkNo){
+		ArrayList<Backup> chunks = this.protocols.get(fileId);
+		for (Backup chunk: chunks){
+			if(chunk.getChunkNo() == chunkNo){
+				return chunk;
+			}
+		}
+		return null;
+	}
+	
+	public void chunkStored(String fileId, int chunkNo) {
+		Backup chunk;
+		if((chunk = getChunk(fileId,chunkNo)) == null)
+			return;
+		else{
+			chunk.setReplication_degree(chunk.getReplication_degree()+1);
+		}
+	}
+	
+	public void chunkRemoved(String fileId, int chunkNo) {
+		Backup chunk;
+		if((chunk = getChunk(fileId,chunkNo)) == null)
+			return;
+		else{
+			chunk.setReplication_degree(chunk.getReplication_degree()-1);
+			if(chunk.getReplication_degree() < chunk.getNcopies()){
+				this.queue.add(new Reclaim(Reclaim.State.BACKUP, this.getVersion(), fileId, chunkNo));
+			}
+		}
+	}	
 }

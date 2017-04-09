@@ -266,6 +266,7 @@ public class Operator implements Runnable{
 				}else if(protocol instanceof Reclaim){
 					reclaim(((Reclaim) protocol).getSpace());
 					System.out.println("Reclaim done");
+					//TODO Reclaim.BACKUP
 				}
 				
 				//if not done
