@@ -258,10 +258,12 @@ public class Peer implements PeerObj {
 	}
 	
 	public Backup getChunk(String fileId, int chunkNo){
-		ArrayList<Backup> chunks = this.protocols.get(fileId);
-		for (Backup chunk: chunks){
-			if(chunk.getChunkNo() == chunkNo){
-				return chunk;
+		ArrayList<Backup> chunks;
+		if((chunks = this.protocols.get(fileId)) != null){
+			for (Backup chunk: chunks){
+				if(chunk.getChunkNo() == chunkNo){
+					return chunk;
+				}
 			}
 		}
 		return null;
