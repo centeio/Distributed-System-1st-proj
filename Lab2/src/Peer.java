@@ -23,6 +23,7 @@ public class Peer implements PeerObj {
 	public File directory;
 	private String folderName;
 	public Hashtable<String, ArrayList<Backup>> protocols;
+	private Hashtable<String, ArrayList<Backup>> backups;
 	public BlockingQueue<Object> queue;
 	//Threadpool para processar por ordem
 	public double space = 60; //em KB
@@ -319,5 +320,13 @@ public class Peer implements PeerObj {
 	}
 	public int getNumberChunks(String fileId, int chunkNo) {
 		return this.mc.getNumberChunks(fileId,chunkNo);
+	}
+
+	public Hashtable<String, ArrayList<Backup>> getBackups() {
+		return backups;
+	}
+
+	public void setBackups(Hashtable<String, ArrayList<Backup>> backups) {
+		this.backups = backups;
 	}
 }
