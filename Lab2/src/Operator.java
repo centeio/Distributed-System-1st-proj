@@ -68,10 +68,12 @@ public class Operator implements Runnable{
 		}
 		
 	}
-
 	
-
-	
+	/**
+	 * 
+	 * http://stackoverflow.com/questions/4431945/split-and-join-back-a-binary-file-in-java
+	 * @param name
+	 */
 	public void divideFileIntoChunks(String name){
 		try{
 			File file = new File(name);
