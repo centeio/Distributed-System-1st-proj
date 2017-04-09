@@ -1,9 +1,8 @@
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.Hashtable;
 
 public class MDB implements Runnable {
 	private int port;
@@ -19,6 +18,7 @@ public class MDB implements Runnable {
 		mcast_addr = mcastaddr;
 		t = new Thread(this);
 		t.start();
+
 	}
 				
 	public int getPort() {
@@ -78,18 +78,19 @@ public class MDB implements Runnable {
 				
 				String messageType = header[0];
 				String version = header[1];
-				int senderId = Integer.parseInt(header[2]);
+				int senderId = Integer.parseInt(header[2]); //peer initiator
 				String fileId = header[3];
 				int chunkNo = Integer.parseInt(header[4]);
 				int replicationDeg = Integer.parseInt(header[5]);
 				
+				/**
+				 * Se não for o initiator, cria um novo backup e adiciona à queue
+				 */
 				if(this.parent.getId() != senderId){
 					System.out.println("Received PUTCHUNK from peer " + senderId);
 					Backup b = new Backup(fileId, body, chunkNo, this.parent.getId(), replicationDeg, Backup.State.SAVECHUNK);
 					this.parent.queue.add(b);
-					this.parent.addBackup(fileId, b);
-				}
-				
+				}	
 			}
 		}
 		catch(IOException e){

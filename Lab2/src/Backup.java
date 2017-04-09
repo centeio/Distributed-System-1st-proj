@@ -1,5 +1,3 @@
-import java.util.ArrayList;
-
 public class Backup {
 	public enum State {
 	     SENDCHUNK, SAVECHUNK, WAITSTORED, RECEIVESTORED, RECEIVEREMOVED, DONE 
