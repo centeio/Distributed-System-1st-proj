@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 
@@ -154,37 +153,7 @@ public class Operator implements Runnable{
 				
 				//work 
 				if(protocol instanceof Delete){
-					Delete del = (Delete) protocol;
-					
-					if(del.state == Delete.State.DELETEFILE){
-						String message = del.getMessage();
-						MulticastSocket socket = new MulticastSocket();
-						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
-						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
-						socket.send(packet);
-						
-						System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
-						
-						del.updateState();
-					}
-					else if(del.state == Delete.State.DELETECHUNKS ){
-						final File folder = peer.getDirectory();
-						final String filename = del.getFileId();
-						final File[] files = folder.listFiles( new FilenameFilter(){
-
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.matches( filename + ".*" );
-							}
-							
-						});
-						for ( final File file : files ) {
-						    if ( !file.delete() ) {
-						        System.err.println( "Can't remove " + file.getAbsolutePath() );
-						    }
-						}
-						del.updateState();
-					}
+					updateDelete((Delete) protocol);
 				}else if(protocol instanceof BackupInitiator){
 					BackupInitiator bkupInit = (BackupInitiator) protocol;
 					File f = new File(bkupInit.getFileName());
@@ -295,23 +264,15 @@ public class Operator implements Runnable{
 			
 			System.out.println("Sending DELETE message to: \n\t\taddress:" + peer.mc.getMcast_addr() + "\n\t\tport: " + peer.mc.getPort());
 			
+			peer.protocols.remove(protocol.getFileId());
+			
 			break;
 		case DELETECHUNKS:
-			final File folder = peer.getDirectory();
-			final String filename = protocol.getFileId();
-			final File[] files = folder.listFiles( new FilenameFilter(){
-
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.matches( filename + ".*" );
-				}
-				
-			});
-			for ( final File file : files ) {
-			    if ( !file.delete() ) {
-			        System.err.println( "Can't remove " + file.getAbsolutePath() );
-			    }
-			}
+			final String fileId = protocol.getFileId();
+			
+			deleteChunks(fileId);
+			
+			peer.protocols.remove(fileId);
 			
 			break;
 		default:
@@ -323,6 +284,25 @@ public class Operator implements Runnable{
 		}
 		else
 			System.out.println("Delete " + protocol.getFileId() + " done");
+	}
+
+
+
+	private void deleteChunks(final String fileId) {
+		final File folder = peer.getDirectory();
+		final File[] files = folder.listFiles( new FilenameFilter(){
+
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.matches( fileId + ".*" );
+			}
+			
+		});
+		for ( final File file : files ) {
+		    if ( !file.delete() ) {
+		        System.err.println( "Can't remove " + file.getAbsolutePath() );
+		    }
+		}
 	}
 	
 	public void receiveStored(){

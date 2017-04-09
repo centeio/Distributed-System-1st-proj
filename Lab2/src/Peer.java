@@ -5,9 +5,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -18,8 +15,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Peer implements PeerObj {
 	private int id;
 	private Registry registry;
-	private String mcast_addr;
-	private int mcast_port;
 	public MC mc;
 	public MDB mdb;
 	public MDR mdr;
