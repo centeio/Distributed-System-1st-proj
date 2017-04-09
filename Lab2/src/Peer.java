@@ -155,7 +155,7 @@ public class Peer implements PeerObj {
 		
 	@Override
 	public void reclaim(int space) throws RemoteException { //Reclaim
-		// TODO Auto-generated method stub
+		this.queue.add(new Reclaim(space));
 	}	
 	
 	/**
@@ -244,5 +244,7 @@ public class Peer implements PeerObj {
 	}
 	public void setReceivedStored(int receivedStored) {
 		this.receivedStored = receivedStored;
+		
+		//TODO Posso fazer aqui um new Backup quando o receivedStore é menor que o rep degree??
 	}
 }

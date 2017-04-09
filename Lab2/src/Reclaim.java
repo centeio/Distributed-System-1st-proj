@@ -7,6 +7,12 @@ public class Reclaim {
 	public int senderId;
 	public String fileId;
 	public int chunkNo;
+	private long space;
+	
+	public Reclaim(long space){
+		super();
+		this.setSpace(space);
+	}
 	
 	public Reclaim(State state, double version, int senderId, String fileId, int chunkNo) {
 		super();
@@ -15,6 +21,14 @@ public class Reclaim {
 		this.senderId = senderId;
 		this.fileId = fileId;
 		this.chunkNo = chunkNo;
+	}
+
+	public long getSpace() {
+		return space;
+	}
+
+	public void setSpace(long space) {
+		this.space = space;
 	}
 	
 	

@@ -101,6 +101,7 @@ public class MC implements Runnable {
 						this.parent.queue.add(new Delete(fileId));
 						break;
 					case "REMOVED":
+						this.parent.setReceivedStored(this.parent.getReceivedStored()-1);
 						break;
 					}
 				}

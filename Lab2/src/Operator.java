@@ -263,6 +263,9 @@ public class Operator implements Runnable{
 					}else if(bkup.state == Backup.State.RECEIVESTORED){
 						System.out.println("Received STORED message from " + bkup.getSenderId());					
 					}
+				}else if(protocol instanceof Reclaim){
+					reclaim(((Reclaim) protocol).getSpace());
+					System.out.println("Reclaim done");
 				}
 				
 				//if not done
