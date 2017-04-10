@@ -5,6 +5,7 @@ public class Backup {
 	//TODO tirar RECEIVEDSTORED, WAITSTORED etc
 	
 	private State state ;
+	private String filename;
 	private String fileId;
 	private int senderId;
 	private byte[] chunk;
@@ -12,7 +13,7 @@ public class Backup {
 	private int replication_degree;
 	private int ncopies = 0;
 	private int storedMessages;
-	private Peer peerInitiator;
+	private int peerInitiator;
 	
 	/**
 	 * Constructor for a Backup object
@@ -186,11 +187,19 @@ public class Backup {
 		this.storedMessages = storedMessages;
 	}
 
-	public Peer getPeerInitiator() {
+	public int getPeerInitiator() {
 		return peerInitiator;
 	}
 
-	public void setPeerInitiator(Peer peerInitiator) {
+	public void setPeerInitiator(int peerInitiator) {
 		this.peerInitiator = peerInitiator;
+	}
+
+	public String getFilename() {
+		return filename;
+	}
+
+	public void setFilename(String filename) {
+		this.filename = filename;
 	}
 }

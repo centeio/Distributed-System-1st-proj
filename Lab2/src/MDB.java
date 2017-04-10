@@ -2,6 +2,9 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.rmi.NotBoundException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 public class MDB implements Runnable {
 	private int port;
@@ -87,6 +90,8 @@ public class MDB implements Runnable {
 				if(this.parent.getId() != senderId){
 					System.out.println("Received PUTCHUNK from peer " + senderId);
 					Backup b = new Backup(fileId, body, chunkNo, this.parent.getId(), replicationDeg, Backup.State.SAVECHUNK);
+					
+					b.setPeerInitiator(senderId);
 					this.parent.queue.add(b);
 				}	
 			}

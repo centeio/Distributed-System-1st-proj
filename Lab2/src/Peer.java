@@ -5,9 +5,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -22,14 +22,12 @@ public class Peer implements PeerObj {
 	private String version;
 	public File directory;
 	private String folderName;
-	public Hashtable<String, ArrayList<Backup>> protocols;
-	private Hashtable<String, ArrayList<Backup>> backups;
+	public ConcurrentHashMap<String, ArrayList<Backup>> protocols;
+	private ConcurrentHashMap<String, ArrayList<Backup>> backups;
 	public BlockingQueue<Object> queue;
 	//Threadpool para processar por ordem
-	public double space = 60; //em KB
-	public int maxspace = 200;
+	public int maxspace = 200 * 1000;
 	private int receivedStored;
-	private boolean initiator;
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
 		if(args.length != 8){
@@ -50,8 +48,8 @@ public class Peer implements PeerObj {
 		this.mdb = new  MDB(args[4], args[5],this);
 		this.mdr = new MDR(args[6], args[7],this);
 		this.queue = new LinkedBlockingQueue<Object>();
-		this.protocols = new Hashtable<String,ArrayList<Backup>>();
-		this.backups = new Hashtable<String,ArrayList<Backup>>();
+		this.protocols = new ConcurrentHashMap<String,ArrayList<Backup>>();
+		this.backups = new ConcurrentHashMap<String,ArrayList<Backup>>();
 
 	    this.registry = LocateRegistry.getRegistry();
 	    this.registry.rebind(args[1], stub);
@@ -60,8 +58,6 @@ public class Peer implements PeerObj {
 
 	    this.directory = new File(this.folderName);
 	    this.directory.mkdir();
-
-	    this.initiator = false;
 	    
 	    ExecutorService executor = Executors.newFixedThreadPool(5);
         for (int i = 0; i < 1; i++) {
@@ -90,8 +86,7 @@ public class Peer implements PeerObj {
 	
 	@Override
 	public void delete(String filename) throws RemoteException { //Restore and delete		
-		this.setInitiator(true);
-		
+	
 		File file = new File(filename);
 		filename = file.getName();
 		if(!file.exists()){
@@ -120,22 +115,21 @@ public class Peer implements PeerObj {
 	 */
 	@Override
 	public void backup(String filename, int repdegree) throws RemoteException{
-		this.setInitiator(true);
-		
 		File file = new File(filename);
 		if(!file.exists()){
 			System.out.println("File does not exist.");
 			return;
 		}
-		this.setReceivedStored(0);
-		this.queue.add(new BackupInitiator(filename, this.id, repdegree));
+				
+		BackupInitiator bi = new BackupInitiator(filename, this.id, repdegree);
+		bi.setPeerInitiator(this);
+		this.queue.add(bi);
+	
 		System.out.println("Backing up " + filename);
 	}	
 	
 	@Override
-	public void restore(String file) throws IOException {
-		this.setInitiator(true);
-		
+	public void restore(String file) throws IOException {	
 		String chunkNo = "ch1";
 		//TODO get chunkNo
 		String message = "GETCHUNK " + version + " " + id + " " + file + " " + chunkNo +" <CRLF><CRLF>";
@@ -159,9 +153,10 @@ public class Peer implements PeerObj {
 		
 	@Override
 	public void reclaim(int space) throws RemoteException { //Reclaim
-		this.setInitiator(true);
+		Reclaim r = new Reclaim(space);
+		r.setPeerInitiator(this);
 		
-		this.queue.add(new Reclaim(space));
+		this.queue.add(r);
 	}	
 	
 	/**
@@ -255,14 +250,8 @@ public class Peer implements PeerObj {
 		this.receivedStored = receivedStored;
 		
 	}
-	public boolean isInitiator() {
-		return initiator;
-	}
-	public void setInitiator(boolean initiator) {
-		this.initiator = initiator;
-	}
 	
-	public Backup getChunk(Hashtable<String,ArrayList<Backup>> table, String fileId, int chunkNo){
+	public Backup getChunk(ConcurrentHashMap<String,ArrayList<Backup>> table, String fileId, int chunkNo){
 		if(table == null) return null;
 		
 		ArrayList<Backup> chunks = table.get(fileId);
@@ -282,22 +271,38 @@ public class Peer implements PeerObj {
 		if((chunk = getChunk(this.protocols,fileId,chunkNo)) == null)
 			return;
 		else{
-			chunk.setReplication_degree(chunk.getReplication_degree()+1);
+			System.out.println("Stored chunk nCopies before= " +  chunk.getNcopies());
+			chunk.setNcopies(chunk.getNcopies()+1);
+			System.out.println("Stored chunk nCopies after= " +  chunk.getNcopies());
+
 		}
 	}
 	
-	public void chunkRemoved(String fileId, int chunkNo) {
+	public void chunkRemoved(String fileId, int chunkNo) throws InterruptedException {
 		Backup chunk;
-		if((chunk = getChunk(this.protocols,fileId,chunkNo)) == null)
-			return;
-		else{
-			chunk.setReplication_degree(chunk.getReplication_degree()-1);
-			if(chunk.getReplication_degree() < chunk.getNcopies()){
-				this.queue.add(new Reclaim(Reclaim.State.BACKUP, this.getVersion(), fileId, chunkNo));
+
+			if(this.protocols == null || (chunk = getChunk(this.protocols,fileId,chunkNo)) == null){
+				return;
+			}else{
+				System.out.println(chunk.getChunkNo());
+				if(chunk.getPeerInitiator() == this.id) return;
+				
+				chunk.setNcopies(Math.max(chunk.getNcopies()-1, 0));
+				System.out.println("ncp: " + chunk.getNcopies());
+				System.out.println("rep: " + chunk.getReplication_degree());
+				if(chunk.getReplication_degree() > chunk.getNcopies()){
+					System.out.println("New Backup of chunk " + chunk.getChunkNo());
+					
+					long randomTime = (0 + (int)(Math.random() * 4))*100;
+					Thread.sleep(randomTime);
+					
+					if((chunk.getReplication_degree()-chunk.getNcopies()) == chunk.getNcopies()){
+						this.queue.add(new BackupInitiator(chunk.getFilename(), this.id, chunk.getNcopies()));
+					}
+				}
 			}
-		}
+
 	}	
-	
 	public int countRepDegree(String fileID, int chunkN){
 		ArrayList<Backup> backups = this.protocols.get(fileID);
 		
@@ -325,9 +330,6 @@ public class Peer implements PeerObj {
 		
 		return true;
 	}
-	public int getNumberChunks(String fileId, int chunkNo) {
-		return this.mc.getNumberChunks(fileId,chunkNo);
-	}
 	
 	/**
 	 * Saves backups done by this peer
@@ -345,11 +347,11 @@ public class Peer implements PeerObj {
 		}
 	}
 	
-	public Hashtable<String, ArrayList<Backup>> getBackups() {
+	public ConcurrentHashMap<String, ArrayList<Backup>> getBackups() {
 		return backups;
 	}
 
-	public void setBackups(Hashtable<String, ArrayList<Backup>> backups) {
+	public void setBackups(ConcurrentHashMap<String, ArrayList<Backup>> backups) {
 		this.backups = backups;
 	}
 	

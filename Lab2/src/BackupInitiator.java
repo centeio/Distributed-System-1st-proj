@@ -2,6 +2,7 @@ public class BackupInitiator {
 	private String filename;
 	private int peerID;
 	private int repdegree;
+	private Peer peerInitiator;
 	
 	public BackupInitiator(String filename, int peerId, int repdegree){
 		this.filename = filename;
@@ -31,5 +32,13 @@ public class BackupInitiator {
 
 	public void setRepdegree(int repdegree) {
 		this.repdegree = repdegree;
+	}
+
+	public Peer getPeerInitiator() {
+		return peerInitiator;
+	}
+
+	public void setPeerInitiator(Peer peerInitiator) {
+		this.peerInitiator = peerInitiator;
 	}
 }

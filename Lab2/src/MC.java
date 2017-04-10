@@ -106,24 +106,20 @@ public class MC implements Runnable {
 						this.parent.queue.add(new Delete(fileId));
 						break;
 					case "REMOVED":
-						chunkNo = Integer.parseInt(parts[4]);
-						this.parent.chunkRemoved(fileId, chunkNo);
+						chunkNo = Integer.parseInt(parts[4]);	
+						System.out.println("Chunk number " + chunkNo + " removed");
+						if(this.parent.getId() != senderId){
+							this.parent.chunkRemoved(fileId, chunkNo);
+						}
 						break;
 				}
 			}
 		}catch(IOException e){
 			mcsocket.close();
 			return;
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-	}
-
-	public int getNumberChunks(String fileId, int chunkNo) {
-		if(!this.parent.isInitiator()){
-			ArrayList<Backup> backups = this.parent.protocols.get(fileId);
-			
-			if(backups == null) return 0;
-		}
-
-		return 0;
 	}
 }

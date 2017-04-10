@@ -9,6 +9,8 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class Operator implements Runnable{
@@ -21,22 +23,27 @@ public class Operator implements Runnable{
 		this.peer = peer;
 	}
 
-	public void reclaimBackup(Reclaim protocol){
-	//	protocol.
-	//	.queue.add(new BackupInitiator(filename, this.id, repdegree));
-
-	}
+	
 	
 	
 	public boolean reclaim(double space) throws IOException{
 		//check the amount of space to free
-		double freeSpace = space - peer.maxspace; 
+		long dirSpace = 0;
 		
-		if(freeSpace > 0){
-			peer.space += freeSpace;
-			freeSpace(peer.directory.getTotalSpace());
+		File[] subFiles = this.peer.directory.listFiles();
+
+		for (File file : subFiles) {
+			dirSpace += file.length();
+		} 
+		
+		space *= 1000;
+		long spaceToFree = (long) (dirSpace - space); 
+		
+		if(spaceToFree < 0){			
+			peer.maxspace += -spaceToFree;
+			freeSpace(dirSpace);
 		}else{
-			freeSpace(space);
+			freeSpace((long)space);
 		}
 		
 		return false;
@@ -45,21 +52,23 @@ public class Operator implements Runnable{
 	
 	private void freeSpace(double tofree) throws IOException {
 		double removed = 0;
-		tofree *= 1024; //convert to Byte
 		ArrayList<Backup> chunks;
 		MulticastSocket socket = new MulticastSocket();
-
+		Set<Backup> chunksToRemove = new HashSet<Backup>();
+		Set<String> keysToRemove = new HashSet<String>();
+		
 		for (String key: peer.protocols.keySet()) {
 			if((chunks = peer.protocols.get(key)) != null){
 				for (Backup chunk: chunks){
 					File f = new File("../peers/"+peer.getId()+"/"+chunk.getFileId()+"."+chunk.getChunkNo());
-					long space = f.getTotalSpace();
+					long space = f.length();
 					if(f.delete()){
-						chunks.remove(chunk);
+						chunksToRemove.add(chunk);
 						String message = "REMOVED " + peer.getVersion() + " " + peer.getId() + " " + chunk.getFileId() + " " + chunk.getChunkNo() + " <CRLF><CRLF>";
 						InetAddress address = InetAddress.getByName(peer.mc.getMcast_addr());
 						DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, peer.mc.getPort());
 						socket.send(packet);
+					
 						removed += space;
 					}else{
 						System.out.println("Could not delete chunk "+chunk.getFileId() + "." + chunk.getChunkNo());
@@ -69,8 +78,15 @@ public class Operator implements Runnable{
 						break;
 					}
 				}
+				
+				chunks.removeAll(chunksToRemove);
+				if(chunks.size() == 0){
+					keysToRemove.add(key);
+				}
 			}
 		}
+		
+		this.peer.protocols.keySet().removeAll(keysToRemove);
 		
 	}
 	
@@ -162,17 +178,7 @@ public class Operator implements Runnable{
 				if(protocol instanceof Delete){
 					updateDelete((Delete) protocol);
 				}else if(protocol instanceof BackupInitiator){
-					BackupInitiator bkupInit = (BackupInitiator) protocol;
-					File f = new File(bkupInit.getFileName());
-					divideFileIntoChunks(bkupInit.getFileName());
-					String file_id = sha256(f.getName() + f.lastModified() + bkupInit.getPeerID());
-
-					for(int i = 0; i < this.chunks.size(); i++){
-						Backup b = new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK);
-						b.setPeerInitiator(this.peer);
-						this.peer.queue.add(b);
-						this.peer.saveBackupDone(file_id, b);
-					}
+					backupInit((BackupInitiator)protocol);
 
 				}else if(protocol instanceof Backup){
 					Backup bkup = (Backup) protocol;
@@ -246,9 +252,12 @@ public class Operator implements Runnable{
 					}else if(bkup.getState() == Backup.State.DONE){
 						System.out.println("Chunk number " + bkup.getChunkNo() + " stored.");					
 					}
-				}else if(protocol instanceof Reclaim){					
-					reclaim(((Reclaim) protocol).getSpace());
+				}else if(protocol instanceof Reclaim){
+					Reclaim r = (Reclaim) protocol;
+					
+					reclaim(r.getSpace());
 					System.out.println("Reclaim done");
+					
 				}
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -260,6 +269,21 @@ public class Operator implements Runnable{
 		}
 	}
 
+
+	private void backupInit(BackupInitiator protocol) {
+		BackupInitiator bkupInit = (BackupInitiator) protocol;
+		File f = new File(bkupInit.getFileName());
+		divideFileIntoChunks(bkupInit.getFileName());
+		String file_id = sha256(f.getName() + f.lastModified() + bkupInit.getPeerID());
+
+		for(int i = 0; i < this.chunks.size(); i++){
+			Backup b = new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK);
+			b.setPeerInitiator(this.peer.getId());
+			b.setFilename(bkupInit.getFileName());
+			this.peer.queue.add(b);
+			this.peer.saveBackupDone(file_id, b);
+		}		
+	}
 
 	private void updateDelete(Delete protocol) throws IOException, InterruptedException {
 		switch(protocol.state){
