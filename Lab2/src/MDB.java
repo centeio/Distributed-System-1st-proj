@@ -91,7 +91,7 @@ public class MDB implements Runnable {
 					System.out.println("Received PUTCHUNK from peer " + senderId);
 					Backup b = new Backup(fileId, body, chunkNo, this.parent.getId(), replicationDeg, Backup.State.SAVECHUNK);
 					
-					b.setPeerInitiator(senderId);
+					//b.setPeerInitiator(peerInitiator);
 					this.parent.queue.add(b);
 				}	
 			}

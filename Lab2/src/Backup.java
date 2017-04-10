@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class Backup {
 	public enum State {
 	     SENDCHUNK, SAVECHUNK, WAITSTORED, RECEIVESTORED, RECEIVEREMOVED, DONE 
@@ -11,10 +13,18 @@ public class Backup {
 	private byte[] chunk;
 	private int chunkNo;
 	private int replication_degree;
-	private int ncopies = 0;
 	private int storedMessages;
 	private int peerInitiator;
+	private ArrayList<Integer> peers;
 	
+	public ArrayList<Integer> getPeers() {
+		return peers;
+	}
+
+	public void setPeers(ArrayList<Integer> peers) {
+		this.peers = peers;
+	}
+
 	/**
 	 * Constructor for a Backup object
 	 * 
@@ -28,7 +38,7 @@ public class Backup {
 		this.setFileId(fileId);
 		this.setSenderId(senderId);
 		this.setReplication_degree(rep_degree);
-		
+		this.peers =  new ArrayList<Integer>();
 		this.state = Backup.State.SENDCHUNK;
 	}
 	
@@ -51,6 +61,7 @@ public class Backup {
 		this.setChunkNo(chunkNo);
 		this.setReplication_degree(rep_degree);
 		this.setStoredMessages(0);
+		this.peers =  new ArrayList<Integer>();
 		
 		this.state = state;
 	}
@@ -171,13 +182,33 @@ public class Backup {
 		this.state = state;
 	}
 
+	/**
+	 * Returns the replication degree of the backup
+	 * @return replication_degree
+	 */
 	public int getNcopies() {
-		return ncopies;
+		return peers.size();
 	}
 
-	public void setNcopies(int ncopies) {
-		this.ncopies = ncopies;
+	/**
+	 * Adds a new peer to peers
+	 * @param peerId new peer
+	 */
+	public void incNcopies(int peerId) {
+		for(int peer: peers){
+			if(peer == peerId)
+				return;
+		}
+		peers.add(peerId);
 	}
+	
+	/**
+	 * Deletes a new peer to peers
+	 * @param peerId old peer
+	 */
+	public void decNcopies(int peerId) {
+		peers.remove((Integer)peerId);
+	}	
 
 	public int getStoredMessages() {
 		return storedMessages;

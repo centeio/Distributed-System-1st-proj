@@ -28,6 +28,7 @@ public class Peer implements PeerObj {
 	//Threadpool para processar por ordem
 	public int maxspace = 200 * 1000;
 	private int receivedStored;
+	private boolean sending;
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
 		if(args.length != 8){
@@ -50,12 +51,14 @@ public class Peer implements PeerObj {
 		this.queue = new LinkedBlockingQueue<Object>();
 		this.protocols = new ConcurrentHashMap<String,ArrayList<Backup>>();
 		this.backups = new ConcurrentHashMap<String,ArrayList<Backup>>();
-
+		
+		this.setSending(false);
+		
 	    this.registry = LocateRegistry.getRegistry();
 	    this.registry.rebind(args[1], stub);
 	    
 	    this.folderName = "../peers/" + this.id;
-
+	    
 	    this.directory = new File(this.folderName);
 	    this.directory.mkdir();
 	    
@@ -266,56 +269,60 @@ public class Peer implements PeerObj {
 		return null;
 	}
 	
-	public void chunkStored(String fileId, int chunkNo) {
+	public void chunkStored(String fileId, int chunkNo, int senderId) {
 		Backup chunk;
-		if((chunk = getChunk(this.protocols,fileId,chunkNo)) == null)
+		if(this.backups != null && (chunk = getChunk(this.backups,fileId,chunkNo)) != null){
+			chunk.incNcopies(senderId);
+			return;
+		}			
+		
+		if(this.protocols == null || (chunk = getChunk(this.protocols,fileId,chunkNo)) == null)
 			return;
 		else{
 			System.out.println("Stored chunk nCopies before= " +  chunk.getNcopies());
-			chunk.setNcopies(chunk.getNcopies()+1);
+			chunk.incNcopies(senderId);
 			System.out.println("Stored chunk nCopies after= " +  chunk.getNcopies());
 
 		}
 	}
 	
-	public void chunkRemoved(String fileId, int chunkNo) throws InterruptedException {
+	public void chunkRemoved(String fileId, int chunkNo, int senderId) throws InterruptedException {
 		Backup chunk;
-
-			if(this.protocols == null || (chunk = getChunk(this.protocols,fileId,chunkNo)) == null){
+		if(this.backups != null && getChunk(this.backups,fileId,chunkNo) != null){
+			System.out.println("initiator of this chunk "+chunkNo);		
+			getChunk(this.backups,fileId,chunkNo).decNcopies(senderId);
+			return;
+		}
+			if(this.protocols == null || getChunk(this.protocols,fileId,chunkNo) == null){
+				System.out.println("chunk not in protocol "+chunkNo);
 				return;
 			}else{
-				System.out.println(chunk.getChunkNo());
-				if(chunk.getPeerInitiator() == this.id) return;
-				
-				chunk.setNcopies(Math.max(chunk.getNcopies()-1, 0));
+				chunk = getChunk(this.protocols,fileId,chunkNo);
+				chunk.decNcopies(senderId);
 				System.out.println("ncp: " + chunk.getNcopies());
 				System.out.println("rep: " + chunk.getReplication_degree());
 				if(chunk.getReplication_degree() > chunk.getNcopies()){
-					System.out.println("New Backup of chunk " + chunk.getChunkNo());
-					
+					//New Backup
+					System.out.println("Needs to Backup chunk");
 					long randomTime = (0 + (int)(Math.random() * 4))*100;
+					System.out.println("Will sleep " + randomTime);
 					Thread.sleep(randomTime);
+					System.out.println("woke up with dif: " + (chunk.getReplication_degree()-chunk.getNcopies()) + " ncopies: "+chunk.getNcopies());
 					
-					if((chunk.getReplication_degree()-chunk.getNcopies()) == chunk.getNcopies()){
-						this.queue.add(new BackupInitiator(chunk.getFilename(), this.id, chunk.getNcopies()));
+					if(chunk.getReplication_degree() > chunk.getNcopies()){
+						System.out.println("New Backup of chunk " + chunk.getChunkNo());
+						System.out.println(chunk.getFilename());
+						Backup newBackup = new Backup(chunk.getFileId(), this.getId(), chunk.getReplication_degree());
+						newBackup.setChunk(chunk.getChunk());
+						newBackup.setPeerInitiator(-1);
+						newBackup.setChunkNo(chunk.getChunkNo());
+						this.queue.add(newBackup);
 					}
 				}
 			}
 
 	}	
-	public int countRepDegree(String fileID, int chunkN){
-		ArrayList<Backup> backups = this.protocols.get(fileID);
-		
-		int count = 0;
-		
-		for(Backup b : backups){
-			if(b.getChunkNo() == chunkN){
-				count++;
-			}
-		}
-		
-		return count;
-	}
+
 	public boolean canSaveChunk(String fileId, int chunkNo, int rep) {
 		ArrayList<Backup> backups = this.protocols.get(fileId);
 
@@ -353,6 +360,14 @@ public class Peer implements PeerObj {
 
 	public void setBackups(ConcurrentHashMap<String, ArrayList<Backup>> backups) {
 		this.backups = backups;
+	}
+
+	public boolean isSending() {
+		return sending;
+	}
+
+	public void setSending(boolean sending) {
+		this.sending = sending;
 	}
 	
 }
