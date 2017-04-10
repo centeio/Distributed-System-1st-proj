@@ -57,7 +57,8 @@ public class Delete {
 	}
 	
 	/**
-	 * Gets the message.
+	 * Gets the DELETE message for the deleting every chunk of that file
+	 * Format of the message: DELETE &lt;Version&gt; &lt;SenderId&gt; &lt;FileId&gt; &lt;CRLF&gt;&lt;CRLF&gt;
 	 *
 	 * @return the message
 	 */
