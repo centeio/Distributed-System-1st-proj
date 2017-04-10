@@ -12,6 +12,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
+//TODO backup -> ver se tem espaço para guardar, senao apaga chunk com rep degree > do que o suposto e guarda
+
 public class Peer implements PeerObj {
 	private int id;
 	private Registry registry;
@@ -24,10 +26,13 @@ public class Peer implements PeerObj {
 	private String folderName;
 	public ConcurrentHashMap<String, ArrayList<Backup>> protocols;
 	private ConcurrentHashMap<String, ArrayList<Backup>> backups;
+	private ConcurrentHashMap<String, String> file_fileid;
 	public BlockingQueue<Object> queue;
+	public List<File> restoreFile;
 	//Threadpool para processar por ordem
 	public int maxspace = 200 * 1000;
 	private int receivedStored;
+	public boolean receivedChunk = false;
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
 		if(args.length != 8){
@@ -35,10 +40,11 @@ public class Peer implements PeerObj {
 			return;
 		}		
 		
-	    new Peer(args);
+	    Peer p = new Peer(args);
 	}
 	
-	public Peer(String[] args) throws RemoteException {
+	@SuppressWarnings("unchecked")
+	public Peer(String[] args) throws IOException {
 		super();
 
 	    PeerObj stub = (PeerObj) UnicastRemoteObject.exportObject(this, 0);
@@ -50,7 +56,9 @@ public class Peer implements PeerObj {
 		this.queue = new LinkedBlockingQueue<Object>();
 		this.protocols = new ConcurrentHashMap<String,ArrayList<Backup>>();
 		this.backups = new ConcurrentHashMap<String,ArrayList<Backup>>();
-
+		this.file_fileid = new ConcurrentHashMap<String, String>();
+		this.restoreFile = new ArrayList<File>();
+		
 	    this.registry = LocateRegistry.getRegistry();
 	    this.registry.rebind(args[1], stub);
 	    
@@ -58,7 +66,32 @@ public class Peer implements PeerObj {
 
 	    this.directory = new File(this.folderName);
 	    this.directory.mkdir();
+
+	    File mem_dir = new File("../memory/");
+	    if(!mem_dir.exists()) mem_dir.mkdir();
+        
+		File f1 = new File("../memory/" + this.id + "_protocols" + ".tmp"); 
+		File f2 = new File("../memory/" + this.id + "_backups" + ".tmp");
+		File f3 = new File("../memory/" + this.id + "_files" + ".txt");
 	    
+        if(!f1.exists()){
+        	f1.createNewFile();
+        }else{
+        	loadMemoryProtocols();
+        }
+        
+        if(!f2.exists()){
+        	f2.createNewFile();
+        }else{
+        	loadMemoryBackups();
+        }
+        
+        if(!f3.exists()){
+        	f3.createNewFile();
+        }else{
+        	loadMemoryFiles();
+        }
+        
 	    ExecutorService executor = Executors.newFixedThreadPool(5);
         for (int i = 0; i < 1; i++) {
             Runnable worker = new Operator(this);
@@ -82,6 +115,68 @@ public class Peer implements PeerObj {
 	
 	public void setRegistry(Registry registry) {
 		this.registry = registry;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void loadMemoryProtocols(){
+		try {
+			FileInputStream fis = new FileInputStream("../memory/"+this.id +"_protocols"+ ".tmp");
+	        ObjectInputStream ois = new ObjectInputStream(fis);
+
+			this.protocols = (ConcurrentHashMap<String, ArrayList<Backup>>) ois.readObject();
+			ois.close();
+		} catch (EOFException ignored){
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void loadMemoryBackups(){
+		try {
+			FileInputStream fis = new FileInputStream("../memory/"+this.id +"_backups"+ ".tmp");
+	        ObjectInputStream ois = new ObjectInputStream(fis);
+	        
+			this.backups = (ConcurrentHashMap<String, ArrayList<Backup>>) ois.readObject();
+			ois.close();
+		} catch (EOFException ignored){
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void loadMemoryFiles(){
+		try {
+			BufferedReader br = new BufferedReader(new FileReader("../memory/"+this.id +"_files"+ ".txt"));
+		    String line = br.readLine();
+		    while (line != null) {
+			    String[] file_fileid = line.split(":");
+			    
+			    String filename = file_fileid[0];
+			    String file_id = file_fileid[1];
+			    
+			    this.file_fileid.put(filename, file_id);
+			    
+		        line = br.readLine();
+		    }
+		    br.close();		    		    
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -128,27 +223,23 @@ public class Peer implements PeerObj {
 		System.out.println("Backing up " + filename);
 	}	
 	
+	/**
+	 * 
+	 * Restore
+	 * 
+	 * @param filename
+	 */
 	@Override
-	public void restore(String file) throws IOException {	
-		String chunkNo = "ch1";
-		//TODO get chunkNo
-		String message = "GETCHUNK " + version + " " + id + " " + file + " " + chunkNo +" <CRLF><CRLF>";
-		MulticastSocket socket = new MulticastSocket();
-
-		InetAddress address = InetAddress.getByName(mc.getMcast_addr());
-		DatagramPacket packet = new DatagramPacket(message.getBytes(), message.toString().length(), address, mc.getPort());
-		System.out.println("sends GETCHUNK to " + mc.getMcast_addr() + " port " + mc.getPort());
-
-		socket.send(packet);
-		
-		address = InetAddress.getByName(mdr.getMcast_addr());
-		byte[] rbuf = new byte[(int) Math.pow(2,16)];
-		packet = new DatagramPacket(rbuf, rbuf.toString().length(), address, mdr.getPort());
-		socket.receive(packet);
-		
-		System.out.println("gets CHUNK from " + packet.getAddress() + " port " + packet.getPort());
-		
-		socket.close();		
+	public void restore(String filename) throws IOException {
+		File file = new File(filename);
+		if(!file.exists()){
+			String nameOfFile = file.getName();
+			
+			Restore r = new Restore(nameOfFile, this.id, this, Restore.State.SENDGETCHUNK);
+			this.queue.add(r);
+			
+			System.out.println("Restoring file " + filename);
+		}
 	}
 		
 	@Override
@@ -171,14 +262,6 @@ public class Peer implements PeerObj {
 		FileInputStream stream;
 		
 		byte[] fileData;
-		
-//		List<File> files = findFiles(filename);
-		/*Collections.sort(files, new Comparator<File>(){
-			@Override
-			public int compare(File f1, File f2) {
-				return  f1.getName().compareTo(f2.getName());
-			}
-		});*/
 		
 		try{
 			chunk = new FileOutputStream(file, true);
@@ -231,15 +314,28 @@ public class Peer implements PeerObj {
 	public File getDirectory() {
 		return directory;
 	}
+	
 	public void addBackup(String fileId, Backup b) {
-		if(!this.protocols.containsKey(fileId)){
-			ArrayList<Backup> list = new ArrayList<Backup>();
-			list.add(b);
-			this.protocols.put(fileId, list);
-		}else{
-			this.protocols.get(fileId).add(b);
+		try {
+
+			if(!this.protocols.containsKey(fileId)){
+				ArrayList<Backup> list = new ArrayList<Backup>();
+				list.add(b);
+				this.protocols.put(fileId, list);
+			}else{
+				this.protocols.get(fileId).add(b);
+			}
+
+			FileOutputStream fos = new FileOutputStream("../memory/" + this.id +"_protocols"+ ".tmp");
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(this.protocols);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
 		}
 	}
+	
 	public String getVersion() {
 		return version;
 	}
@@ -338,12 +434,23 @@ public class Peer implements PeerObj {
 	 * @param b backup of a chunk backed up
 	 */
 	public void saveBackupDone(String fileId, Backup b){
-		if(!backups.containsKey(fileId)){
-			ArrayList<Backup> list = new ArrayList<Backup>();
-			list.add(b);
-			backups.put(fileId, list);
-		}else{
-			backups.get(fileId).add(b);
+		try {
+
+			if(!this.backups.containsKey(fileId)){
+				ArrayList<Backup> list = new ArrayList<Backup>();
+				list.add(b);
+				this.backups.put(fileId, list);
+			}else{
+				this.backups.get(fileId).add(b);
+			}
+
+			FileOutputStream fos = new FileOutputStream("../memory/" + this.id +"_backups"+ ".tmp");
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(this.backups);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
 		}
 	}
 	
@@ -353,6 +460,14 @@ public class Peer implements PeerObj {
 
 	public void setBackups(ConcurrentHashMap<String, ArrayList<Backup>> backups) {
 		this.backups = backups;
+	}
+
+	public ConcurrentHashMap<String, String> getFile_fileid() {
+		return file_fileid;
+	}
+
+	public void setFile_fileid(ConcurrentHashMap<String, String> file_fileid) {
+		this.file_fileid = file_fileid;
 	}
 	
 }

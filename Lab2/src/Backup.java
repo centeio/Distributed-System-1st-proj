@@ -1,4 +1,8 @@
-public class Backup {
+import java.io.Serializable;
+
+@SuppressWarnings("serial")
+public class Backup implements Serializable{
+
 	public enum State {
 	     SENDCHUNK, SAVECHUNK, WAITSTORED, RECEIVESTORED, RECEIVEREMOVED, DONE 
 	}

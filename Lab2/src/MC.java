@@ -101,6 +101,20 @@ public class MC implements Runnable {
 						}
 						break;
 					case "GETCHUNK":
+						//
+
+						chunkNo = Integer.parseInt(parts[4]);
+						if(this.parent.getId() != senderId){
+							if(this.parent.protocols.get(fileId) != null){
+								for(Backup b : this.parent.protocols.get(fileId)){
+									if(b.getChunkNo() == chunkNo){
+										Restore r = new Restore(senderId, b.getChunk(), fileId, chunkNo, Restore.State.SENDCHUNK);
+										this.parent.queue.add(r);
+									}
+								}
+							}
+						}
+								
 						break;
 					case "DELETE":
 						this.parent.queue.add(new Delete(fileId));

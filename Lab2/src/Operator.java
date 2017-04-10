@@ -1,9 +1,14 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -17,6 +22,7 @@ public class Operator implements Runnable{
 	
 	private Peer peer;
 	private ArrayList<byte[]> chunks;
+	private String nameOfRestoredFile;
 	
 	public Operator(Peer peer) {
 		super();
@@ -258,6 +264,55 @@ public class Operator implements Runnable{
 					reclaim(r.getSpace());
 					System.out.println("Reclaim done");
 					
+				}else if(protocol instanceof Restore){
+					Restore r = (Restore) protocol;
+
+					if(r.state == Restore.State.SENDGETCHUNK){
+						File f = new File(r.getFilename());
+						System.out.println(f.getName());
+						String file_id = this.peer.getFile_fileid().get(f.getName());
+						r.setFile_id(file_id);
+						r.setSenderId(this.peer.getId());
+						nameOfRestoredFile = r.getFilename();
+						ArrayList<Backup> backups = this.peer.getBackups().get(file_id);
+	
+						for(int i = 0; i < backups.size(); i++){
+							String message = r.getGetchunk(i+1);
+							
+							MulticastSocket socket = new MulticastSocket();
+							InetAddress address = InetAddress.getByName(this.peer.mc.getMcast_addr());
+							DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), address, this.peer.mc.getPort());
+							socket.send(packet);
+							socket.close();
+						}
+					}else if(r.state == Restore.State.SENDCHUNK){
+						String message_header = r.getChunk();
+						byte[] message_header_bytes = message_header.getBytes();
+						byte[] message_body = r.getData();
+						byte[] chunk = new byte[message_header_bytes.length + message_body.length];
+						
+						for(int i = 0; i < chunk.length; i++){
+							if(i < message_header_bytes.length){
+								chunk[i] = message_header_bytes[i];
+							}else{
+								chunk[i] = message_body[i-message_header_bytes.length];
+							}
+						}
+						
+						System.out.println("Sending CHUNK message");
+
+						MulticastSocket socket = new MulticastSocket();
+						InetAddress address = InetAddress.getByName(this.peer.mdr.getMcast_addr());
+						DatagramPacket packet = new DatagramPacket(chunk, chunk.length, address, this.peer.mdr.getPort());
+						
+						long randomTime = (0 + (int)(Math.random() * 4))*100;
+						Thread.sleep(randomTime);
+
+						socket.close();
+					}else if(r.state == Restore.State.DONE){
+						
+						this.peer.restoreFile("../files/" + nameOfRestoredFile,this.peer.restoreFile);
+					}
 				}
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -275,7 +330,18 @@ public class Operator implements Runnable{
 		File f = new File(bkupInit.getFileName());
 		divideFileIntoChunks(bkupInit.getFileName());
 		String file_id = sha256(f.getName() + f.lastModified() + bkupInit.getPeerID());
+		
+		try {
+			File file_data = new File("../memory/"+this.peer.getId() +"_files"+ ".txt");
+			BufferedWriter bw = new BufferedWriter(new FileWriter(file_data , true));
 
+			bw.write(f.getName() + ":" + file_id );
+		    
+		    bw.close();		    		    
+		} catch (IOException e) {
+			e.printStackTrace();
+        }		
+		
 		for(int i = 0; i < this.chunks.size(); i++){
 			Backup b = new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK);
 			b.setPeerInitiator(this.peer.getId());
