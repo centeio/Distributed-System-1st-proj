@@ -21,6 +21,11 @@ public class Operator implements Runnable{
 		this.peer = peer;
 	}
 
+	public void reclaimBackup(Reclaim protocol){
+	//	protocol.
+	//	.queue.add(new BackupInitiator(filename, this.id, repdegree));
+
+	}
 	
 	
 	public boolean reclaim(double space) throws IOException{
@@ -243,10 +248,9 @@ public class Operator implements Runnable{
 					}else if(bkup.getState() == Backup.State.DONE){
 						System.out.println("Chunk number " + bkup.getChunkNo() + " stored.");					
 					}
-				}else if(protocol instanceof Reclaim){
+				}else if(protocol instanceof Reclaim){					
 					reclaim(((Reclaim) protocol).getSpace());
 					System.out.println("Reclaim done");
-					//TODO Reclaim.BACKUP
 				}
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
