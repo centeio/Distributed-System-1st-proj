@@ -22,11 +22,16 @@ public class Operator implements Runnable{
 	
 	private Peer peer;
 	private ArrayList<byte[]> chunks;
+<<<<<<< HEAD
 	private String nameOfRestoredFile;
+=======
+	private boolean sending;
+>>>>>>> master
 	
 	public Operator(Peer peer) {
 		super();
 		this.peer = peer;
+		this.setSending(false);
 	}
 
 	
@@ -190,10 +195,15 @@ public class Operator implements Runnable{
 					Backup bkup = (Backup) protocol;
 
 					if(bkup.getState() == Backup.State.SENDCHUNK){
+						this.peer.setSending(true);
 						String message_header = bkup.getPutchunk();
 						byte[] message_header_bytes = message_header.getBytes();
 						byte[] message_body = bkup.getChunk();
 						byte[] putchunk = new byte[message_header_bytes.length + message_body.length];
+						
+						
+						this.peer.saveBackupDone(bkup.getFileId(), bkup);
+						
 						
 						for(int i = 0; i < putchunk.length; i++){
 							if(i < message_header_bytes.length){
@@ -216,28 +226,42 @@ public class Operator implements Runnable{
 						int actualtries = 0;
 						
 						Thread.sleep(timeout);
-						while(this.peer.getChunk(this.peer.getBackups(), bkup.getFileId(), bkup.getChunkNo()).getStoredMessages() < bkup.getReplication_degree() && actualtries < 5){
+						while(this.peer.getChunk(this.peer.getBackups(), bkup.getFileId(), bkup.getChunkNo()).getNcopies() < bkup.getReplication_degree() && actualtries < 5){
 							System.out.println("Retransmiting PUTCHUNK...");
 							actualtries++;
 							socket.send(packet);
 							timeout = timeout * 2;
 							Thread.sleep(timeout);
 						}
+						if(bkup.getPeerInitiator() != -1){
+							this.peer.getBackups().remove(bkup.getFileId(),bkup);
+						}
+						
 						socket.close();
 
 						System.out.println("Received all STORED messages for chunk " + bkup.getChunkNo());
 						
 						bkup.setState(Backup.State.DONE);
-						this.peer.queue.add(protocol);
-					}else if(bkup.getState() == Backup.State.SAVECHUNK){
-						File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + bkup.getChunkNo());
 						
-						if(!output.exists()){
-							FileOutputStream chunk = new FileOutputStream(output);
-							chunk.write(bkup.getChunk());
-							chunk.flush();
-							chunk.close();
-				
+						this.peer.setSending(false);
+					//	this.peer.getBackups().notifyAll();
+						this.peer.queue.add(protocol);						
+					}else if(bkup.getState() == Backup.State.SAVECHUNK){						
+						if(!(this.peer.getBackups() != null && this.peer.getChunk(this.peer.getBackups(),bkup.getFileId(),bkup.getChunkNo()) != null)){
+							//is not initiator
+						
+						
+							File output = new File("../peers/" + this.peer.getId() + "/" + bkup.getFileId() + "." + bkup.getChunkNo());
+							
+							if(!output.exists()){
+								FileOutputStream chunk = new FileOutputStream(output);
+								chunk.write(bkup.getChunk());
+								chunk.flush();
+								chunk.close();
+								
+								this.peer.addBackup(bkup.getFileId(), bkup);
+							}
+							
 							System.out.println("Sending STORED message");
 							
 							String message = bkup.getStored();
@@ -251,9 +275,8 @@ public class Operator implements Runnable{
 							socket.send(packet);
 							
 							socket.close();
-							
 							bkup.setState(Backup.State.DONE);
-							this.peer.addBackup(bkup.getFileId(), bkup);
+						
 						}
 					}else if(bkup.getState() == Backup.State.DONE){
 						System.out.println("Chunk number " + bkup.getChunkNo() + " stored.");					
@@ -344,10 +367,11 @@ public class Operator implements Runnable{
 		
 		for(int i = 0; i < this.chunks.size(); i++){
 			Backup b = new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK);
+			b.setFilename(bkupInit.getFileName());			
 			b.setPeerInitiator(this.peer.getId());
-			b.setFilename(bkupInit.getFileName());
+					
+			
 			this.peer.queue.add(b);
-			this.peer.saveBackupDone(file_id, b);
 		}		
 	}
 
@@ -402,5 +426,19 @@ public class Operator implements Runnable{
 	
 	public void receiveStored(){
 		
+	}
+
+
+
+
+	public boolean isSending() {
+		return sending;
+	}
+
+
+
+
+	public void setSending(boolean sending) {
+		this.sending = sending;
 	}
 }

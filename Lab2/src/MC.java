@@ -91,14 +91,11 @@ public class MC implements Runnable {
 				switch(type){
 					case "STORED":
 						chunkNo = Integer.parseInt(parts[4]);
-						if(this.parent.getId() != senderId){
-							try{
-								Backup b = this.parent.getChunk(this.parent.getBackups(), fileId, chunkNo);
-								b.setStoredMessages(b.getStoredMessages() + 1);
-							}catch(NullPointerException e){
-								this.parent.chunkStored(fileId, chunkNo);
-							}
-						}
+							
+						Backup b = this.parent.getChunk(this.parent.getBackups(), fileId, chunkNo);
+						//b.setStoredMessages(b.getStoredMessages() + 1);
+						this.parent.chunkStored(fileId, chunkNo, senderId);
+						
 						break;
 					case "GETCHUNK":
 						//
@@ -123,9 +120,10 @@ public class MC implements Runnable {
 					case "REMOVED":
 						chunkNo = Integer.parseInt(parts[4]);	
 						System.out.println("Chunk number " + chunkNo + " removed");
-						if(this.parent.getId() != senderId){
-							this.parent.chunkRemoved(fileId, chunkNo);
+						if(senderId != this.parent.getId()){
+							this.parent.chunkRemoved(fileId, chunkNo, senderId);
 						}
+						
 						break;
 				}
 			}
