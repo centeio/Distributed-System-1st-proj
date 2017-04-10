@@ -51,6 +51,7 @@ public class Peer implements PeerObj {
 		this.mdr = new MDR(args[6], args[7],this);
 		this.queue = new LinkedBlockingQueue<Object>();
 		this.protocols = new Hashtable<String,ArrayList<Backup>>();
+		this.backups = new Hashtable<String,ArrayList<Backup>>();
 
 	    this.registry = LocateRegistry.getRegistry();
 	    this.registry.rebind(args[1], stub);
@@ -321,7 +322,23 @@ public class Peer implements PeerObj {
 	public int getNumberChunks(String fileId, int chunkNo) {
 		return this.mc.getNumberChunks(fileId,chunkNo);
 	}
-
+	
+	/**
+	 * Saves backups done by this peer
+	 * 
+	 * @param fileId fileId of the file backed up
+	 * @param b backup of a chunk backed up
+	 */
+	public void saveBackupDone(String fileId, Backup b){
+		if(!backups.containsKey(fileId)){
+			ArrayList<Backup> list = new ArrayList<Backup>();
+			list.add(b);
+			backups.put(fileId, list);
+		}else{
+			backups.get(fileId).add(b);
+		}
+	}
+	
 	public Hashtable<String, ArrayList<Backup>> getBackups() {
 		return backups;
 	}
@@ -329,4 +346,5 @@ public class Peer implements PeerObj {
 	public void setBackups(Hashtable<String, ArrayList<Backup>> backups) {
 		this.backups = backups;
 	}
+	
 }

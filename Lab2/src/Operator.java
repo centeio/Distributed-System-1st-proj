@@ -163,8 +163,11 @@ public class Operator implements Runnable{
 					String file_id = sha256(f.getName() + f.lastModified() + bkupInit.getPeerID());
 
 					for(int i = 0; i < this.chunks.size(); i++){
-						this.peer.queue.add(new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK));
+						Backup b = new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK);
+						this.peer.queue.add(b);
+						this.peer.saveBackupDone(file_id, b);
 					}
+
 				}else if(protocol instanceof Backup){
 					Backup bkup = (Backup) protocol;
 
