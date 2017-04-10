@@ -103,7 +103,7 @@ public class Operator implements Runnable{
 					break;
 				}
 				chunks.add(chunkData);
-
+								
 				chunkData = null;
 			}
 			

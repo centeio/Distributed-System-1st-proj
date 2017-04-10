@@ -66,15 +66,14 @@ public class MDB implements Runnable {
 				DatagramPacket packet = new DatagramPacket(rbuf, rbuf.length);
 				
 				mcsocket.receive(packet);
+							
+				String data = new String(packet.getData(), "ISO-8859-1");
 								
-				String data = new String(packet.getData());
-				data = data.trim();
-				
-				String[] data_split = data.split("[ ]+\\r\\n\\r\\n");
+				String[] data_split = data.split(" \\r\\n\\r\\n");
 				
 				String[] header = data_split[0].split(" ");
-				byte[] body = data_split[1].getBytes();
-				
+				byte[] body = data_split[1].trim().getBytes("ISO-8859-1");
+										
 				String messageType = header[0];
 				String version = header[1];
 				int senderId = Integer.parseInt(header[2]); //peer initiator
@@ -83,7 +82,7 @@ public class MDB implements Runnable {
 				int replicationDeg = Integer.parseInt(header[5]);
 				
 				/**
-				 * Se não for o initiator, cria um novo backup e adiciona à queue
+				 * Se nao for o initiator, cria um novo backup e adiciona a queue
 				 */
 				if(this.parent.getId() != senderId){
 					System.out.println("Received PUTCHUNK from peer " + senderId);
