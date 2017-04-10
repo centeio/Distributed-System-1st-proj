@@ -91,13 +91,13 @@ public class MC implements Runnable {
 				switch(type){
 					case "STORED":
 						chunkNo = Integer.parseInt(parts[4]);
-						if(this.parent.isInitiator()){
-							this.parent.setReceivedStored(this.parent.getReceivedStored()+1);
-							//TODO pode-se tirar isto, depois, certo?
-							this.parent.queue.add(new Backup(fileId, null, chunkNo, senderId, 0, Backup.State.RECEIVESTORED));
-						}
-						else{
-							this.parent.chunkStored(fileId, chunkNo);
+						if(this.parent.getId() != senderId){
+							try{
+								Backup b = this.parent.getChunk(this.parent.getBackups(), fileId, chunkNo);
+								b.setStoredMessages(b.getStoredMessages() + 1);
+							}catch(NullPointerException e){
+								this.parent.chunkStored(fileId, chunkNo);
+							}
 						}
 						break;
 					case "GETCHUNK":

@@ -237,10 +237,13 @@ public class Peer implements PeerObj {
 		return directory;
 	}
 	public void addBackup(String fileId, Backup b) {
-		if(this.protocols.get(fileId) == null){
-			this.protocols.put(fileId, new ArrayList<Backup>());
+		if(!this.protocols.containsKey(fileId)){
+			ArrayList<Backup> list = new ArrayList<Backup>();
+			list.add(b);
+			this.protocols.put(fileId, list);
+		}else{
+			this.protocols.get(fileId).add(b);
 		}
-		this.protocols.get(fileId).add(b);
 	}
 	public String getVersion() {
 		return version;
@@ -259,9 +262,12 @@ public class Peer implements PeerObj {
 		this.initiator = initiator;
 	}
 	
-	public Backup getChunk(String fileId, int chunkNo){
-		ArrayList<Backup> chunks;
-		if((chunks = this.protocols.get(fileId)) != null){
+	public Backup getChunk(Hashtable<String,ArrayList<Backup>> table, String fileId, int chunkNo){
+		if(table == null) return null;
+		
+		ArrayList<Backup> chunks = table.get(fileId);
+
+		if(chunks != null){
 			for (Backup chunk: chunks){
 				if(chunk.getChunkNo() == chunkNo){
 					return chunk;
@@ -273,7 +279,7 @@ public class Peer implements PeerObj {
 	
 	public void chunkStored(String fileId, int chunkNo) {
 		Backup chunk;
-		if((chunk = getChunk(fileId,chunkNo)) == null)
+		if((chunk = getChunk(this.protocols,fileId,chunkNo)) == null)
 			return;
 		else{
 			chunk.setReplication_degree(chunk.getReplication_degree()+1);
@@ -282,7 +288,7 @@ public class Peer implements PeerObj {
 	
 	public void chunkRemoved(String fileId, int chunkNo) {
 		Backup chunk;
-		if((chunk = getChunk(fileId,chunkNo)) == null)
+		if((chunk = getChunk(this.protocols,fileId,chunkNo)) == null)
 			return;
 		else{
 			chunk.setReplication_degree(chunk.getReplication_degree()-1);

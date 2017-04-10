@@ -2,6 +2,7 @@ public class Backup {
 	public enum State {
 	     SENDCHUNK, SAVECHUNK, WAITSTORED, RECEIVESTORED, RECEIVEREMOVED, DONE 
 	}
+	//TODO tirar RECEIVEDSTORED, WAITSTORED etc
 	
 	private State state ;
 	private String fileId;
@@ -10,6 +11,8 @@ public class Backup {
 	private int chunkNo;
 	private int replication_degree;
 	private int ncopies = 0;
+	private int storedMessages;
+	private Peer peerInitiator;
 	
 	/**
 	 * Constructor for a Backup object
@@ -23,7 +26,7 @@ public class Backup {
 
 		this.setFileId(fileId);
 		this.setSenderId(senderId);
-		this.replication_degree = rep_degree;
+		this.setReplication_degree(rep_degree);
 		
 		this.state = Backup.State.SENDCHUNK;
 	}
@@ -46,6 +49,7 @@ public class Backup {
 		this.setSenderId(senderId);
 		this.setChunkNo(chunkNo);
 		this.setReplication_degree(rep_degree);
+		this.setStoredMessages(0);
 		
 		this.state = state;
 	}
@@ -172,5 +176,21 @@ public class Backup {
 
 	public void setNcopies(int ncopies) {
 		this.ncopies = ncopies;
+	}
+
+	public int getStoredMessages() {
+		return storedMessages;
+	}
+
+	public void setStoredMessages(int storedMessages) {
+		this.storedMessages = storedMessages;
+	}
+
+	public Peer getPeerInitiator() {
+		return peerInitiator;
+	}
+
+	public void setPeerInitiator(Peer peerInitiator) {
+		this.peerInitiator = peerInitiator;
 	}
 }

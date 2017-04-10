@@ -169,6 +169,7 @@ public class Operator implements Runnable{
 
 					for(int i = 0; i < this.chunks.size(); i++){
 						Backup b = new Backup(file_id, this.chunks.get(i), i+1, bkupInit.getPeerID(), bkupInit.getRepdegree(), Backup.State.SENDCHUNK);
+						b.setPeerInitiator(this.peer);
 						this.peer.queue.add(b);
 						this.peer.saveBackupDone(file_id, b);
 					}
@@ -203,8 +204,7 @@ public class Operator implements Runnable{
 						int actualtries = 0;
 						
 						Thread.sleep(timeout);
-						while(this.peer.getReceivedStored() < bkup.getReplication_degree() && actualtries < 5){
-							this.peer.setReceivedStored(0);
+						while(this.peer.getChunk(this.peer.getBackups(), bkup.getFileId(), bkup.getChunkNo()).getStoredMessages() < bkup.getReplication_degree() && actualtries < 5){
 							System.out.println("Retransmiting PUTCHUNK...");
 							actualtries++;
 							socket.send(packet);
@@ -241,10 +241,8 @@ public class Operator implements Runnable{
 							socket.close();
 							
 							bkup.setState(Backup.State.DONE);
-							this.peer.queue.add(protocol);
+							this.peer.addBackup(bkup.getFileId(), bkup);
 						}
-					}else if(bkup.getState() == Backup.State.RECEIVESTORED){
-						System.out.println("Received STORED message from " + bkup.getSenderId());					
 					}else if(bkup.getState() == Backup.State.DONE){
 						System.out.println("Chunk number " + bkup.getChunkNo() + " stored.");					
 					}
