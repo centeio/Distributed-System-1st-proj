@@ -117,7 +117,8 @@ public class MC implements Runnable {
 								
 						break;
 					case "DELETE":
-						this.parent.queue.add(new Delete(fileId));
+						if(senderId != parent.getId())
+							this.parent.queue.add(new Delete(fileId));
 						break;
 					case "REMOVED":
 						chunkNo = Integer.parseInt(parts[4]);	
