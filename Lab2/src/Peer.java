@@ -473,5 +473,9 @@ public class Peer implements PeerObj {
 	public void setSending(boolean sending) {
 		this.sending = sending;
 	}
+
+	public ConcurrentHashMap<String, String> getFile_fileid() {
+		return file_fileid;
+	}
 	
 }

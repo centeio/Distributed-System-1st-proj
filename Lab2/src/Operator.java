@@ -22,11 +22,8 @@ public class Operator implements Runnable{
 	
 	private Peer peer;
 	private ArrayList<byte[]> chunks;
-<<<<<<< HEAD
 	private String nameOfRestoredFile;
-=======
 	private boolean sending;
->>>>>>> master
 	
 	public Operator(Peer peer) {
 		super();

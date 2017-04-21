@@ -1,14 +1,9 @@
-<<<<<<< HEAD
 import java.io.Serializable;
+import java.util.ArrayList;
 
 @SuppressWarnings("serial")
 public class Backup implements Serializable{
 
-=======
-import java.util.ArrayList;
-
-public class Backup {
->>>>>>> master
 	public enum State {
 	     SENDCHUNK, SAVECHUNK, WAITSTORED, RECEIVESTORED, RECEIVEREMOVED, DONE 
 	}

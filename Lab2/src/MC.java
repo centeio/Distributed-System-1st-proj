@@ -103,9 +103,9 @@ public class MC implements Runnable {
 						chunkNo = Integer.parseInt(parts[4]);
 						if(this.parent.getId() != senderId){
 							if(this.parent.protocols.get(fileId) != null){
-								for(Backup b : this.parent.protocols.get(fileId)){
-									if(b.getChunkNo() == chunkNo){
-										Restore r = new Restore(senderId, b.getChunk(), fileId, chunkNo, Restore.State.SENDCHUNK);
+								for(Backup br : this.parent.protocols.get(fileId)){
+									if(br.getChunkNo() == chunkNo){
+										Restore r = new Restore(senderId, br.getChunk(), fileId, chunkNo, Restore.State.SENDCHUNK);
 										this.parent.queue.add(r);
 									}
 								}
